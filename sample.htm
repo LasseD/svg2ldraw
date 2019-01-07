@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>Sample Conversion from SVG to LDraw</title>
+    <meta name="viewport" content="width=device-width" />
+ </head>
+ <body>
+  <script src="js/path_simplification.js"></script>
+  <script src="js/bezier_removal.js"></script>
+  <script src="js/svg2ldraw.js"></script>
+  <h3>SVG to Convert</h3>
+  <div id="svg_container">
+    <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">  
+      <path d="M10 10 H 90 V 90 H 10 L 10 10"/>
+    </svg>
+  </div>
+  <h3>SVG Content</h3>
+  <pre id="svg_content">
+  </pre>
+  <h3>LDraw Content</h3>
+  <pre id="ldraw_result">
+    Loading...
+  </pre>
+  <script>
+   var svg = document.getElementById('svg_container').innerHTML;
+
+   document.getElementById('svg_content').appendChild(document.createTextNode(svg));
+
+   svg = new SVG2LDRAW.Svg(svg).toLDraw(5);
+
+   document.getElementById('ldraw_result').innerHTML = svg;
+  </script>
+ </body>
+</html>
