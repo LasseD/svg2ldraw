@@ -8,12 +8,13 @@
  <body>
   <script src="js/path_simplification.js"></script>
   <script src="js/bezier_removal.js"></script>
+  <script src="js/trapezoidal_decomposition.js"></script>
   <script src="js/svg2ldraw.js"></script>
   <h3>SVG to Convert</h3>
   <div id="svg_container">
 <svg width="200" height="100" xmlns="http://www.w3.org/2000/svg">  
   <path d="M10 10 H 90 V 90 H 10 L 50 50 l -30 -5 L 10 10 M 110 10 h 50 v 20 z m 0 50 h 50 v 20 Z" fill="red"/>
-  <path d="M 110 10 v 20 C TODO">
+  <path d="M 110 15 L 160 35 C 160 45, 100 25, 110 15">
 </svg>
   </div>
   <h3>SVG Content</h3>

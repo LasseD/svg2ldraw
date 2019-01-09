@@ -20,7 +20,8 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
     var svg = doc.children[0];
 
     var svgObj = {width: Number(svg.attributes.width.value), 
-                  height: Number(svg.attributes.height.value), 
+                  height: Number(svg.attributes.height.value),
+                  bg: 0, // TODO
                   paths: []};
 
     var paths = doc.getElementsByTagName('path');
@@ -86,6 +87,8 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             break;
         case 'Z':
         case 'z':
+            if(p.length == 0)
+                break;
             x = p[0].x;
             y = p[0].y;
             closePath();
@@ -129,6 +132,8 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             p.push(...this.bezierRemover.handleCurve(p0, p1, p2, p3));
             x = x3;
             y = y3;
+            if(x == p[0].x && y == p[0].y)
+                closePath();
             break;
         case 'c':
             throw "Cubic bezier curve with additive coordinates not yet supported.";
