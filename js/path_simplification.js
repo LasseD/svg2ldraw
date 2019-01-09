@@ -1,7 +1,7 @@
 var UTIL = {};
 
-UTIL.PathSimplification = function(pointsPerCurve) {
-    this.pointsPerCurve = pointsPerCurve;
+UTIL.PathSimplification = function(pointsPerPixel) {
+    this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
 }
 
 /*
@@ -28,7 +28,7 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
         var path = paths[i];
         var d = path.attributes.d.value;
         var fill = path.attributes.fill;
-        var c = 'black';
+        var c = '#000000';
         if(fill) {
             c = fill.value;
         }
@@ -116,13 +116,24 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             p.push({x:x, y:y});
             break;
         case 'C':
-            // var c = new UTIL.BezierRemover(pointsPerCurve).handleSvg(this.content);
-            //c = UTIL.simplifySvgPaths(c); // TODO: Find the right way to do this.
-            throw "Cubic bezier curve not yet supported.";
+            var x1 = Number(tokens[++i]);
+            var y1 = Number(tokens[++i]);
+            var x2 = Number(tokens[++i]);
+            var y2 = Number(tokens[++i]);
+            var x3 = Number(tokens[++i]);
+            var y3 = Number(tokens[++i]);
+            var p0 = {x:x, y:y};
+            var p1 = {x:x1, y:y1};
+            var p2 = {x:x2, y:y2};
+            var p3 = {x:x3, y:y3};
+            p.push(...this.bezierRemover.handleCurve(p0, p1, p2, p3));
+            x = x3;
+            y = y3;
+            break;
         case 'c':
-            throw "Cubic bezier curve not yet supported.";
+            throw "Cubic bezier curve with additive coordinates not yet supported.";
         default:
-            throw "Unknown svg path command: " + cmd;
+            throw "Unsupported svg path command: " + cmd;
         }
     }
 }
