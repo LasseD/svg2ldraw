@@ -10,26 +10,30 @@
   <script src="js/bezier_removal.js"></script>
   <script src="js/trapezoidal_decomposition.js"></script>
   <script src="js/svg2ldraw.js"></script>
+
   <h3>SVG to Convert</h3>
   <div id="svg_container">
-<svg width="200" height="100" xmlns="http://www.w3.org/2000/svg">  
-  <path d="M10 10 H 90 V 90 H 10 L 50 50 l -30 -5 L 10 10 M 110 10 h 50 v 20 z m 0 50 h 50 v 20 Z" fill="red"/>
+<svg width="300" height="100" xmlns="http://www.w3.org/2000/svg">  
+  <path d="M10 10 H 90 V 90 H 10 L 50 50 l -30 -5 L 10 10 M 110 10 h 50 v 20 z m 0 50 h 50 v 20 Z" fill="green"/>
   <path d="M 110 15 L 160 35 C 160 45, 100 25, 110 15">
+  <path d="M 200 0 v 100 h 100 v -100 Z" fill="pink" />
+  <path d="M 210 50 L 260 20 L 280 90 L 210 50" fill="blue" />
+  <path d="M 225 49 L 242 41 L 258 62 Z" fill="red" />
 </svg>
   </div>
-  <h3>SVG Content</h3>
   <pre id="svg_content">
   </pre>
 
   <h3>Simplified SVG</h3>
   <div id="svg_simplified">
   </div>
-  <h3>Simplified SVG Content</h3>
   <pre id="svg_content_simplified"></pre>
 
-  <h3>LDraw Content</h3>
+  <h3>LDraw</h3>
+  <div id="svg_ldraw">
+  </div>
   <pre id="ldraw_result">
-    Loading...
+
   </pre>
   <script>
    var svg = document.getElementById('svg_container').innerHTML;
@@ -40,12 +44,15 @@
    var simplified = simplifier.simplifySvg(svg);
 
    var simplifiedSvg = simplifier.svgObjToSvg(simplified);
-   document.getElementById('svg_simplified').innerHTML = simplifiedSvg
+   document.getElementById('svg_simplified').innerHTML = simplifiedSvg;
    document.getElementById('svg_content_simplified').appendChild(document.createTextNode(simplifiedSvg));
    
    // LDraw:
-   document.getElementById('ldraw_result').innerHTML = JSON.stringify(simplified);
-
+   var lDrawContent = new SVG2LDRAW.Svg().toLDraw(simplified);
+   var lDrawSvg = simplifier.svgObjToSvg(lDrawContent);
+   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
+   //document.getElementById('ldraw_result').innerHTML = JSON.stringify(lDrawContent);
+   document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawSvg));
   </script>
  </body>
 </html>

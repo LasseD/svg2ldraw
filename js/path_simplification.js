@@ -41,13 +41,22 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
 
 UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
     var ret = '<svg width="' + svgObj.width + '" height="' + svgObj.height + '" xmlns="http://www.w3.org/2000/svg">\n';
+
+    function shorten(x) {
+        if(x == Math.floor(x))
+          return x;
+        return x.toPrecision(4);
+    }
+
     for(var i = 0; i < svgObj.paths.length; i++) {
         var path = svgObj.paths[i];
         var p = path.points;
-        ret += '  <path d="M ' + p[0].x + ' ' + p[0].y + ' ';
+        ret += '  <path d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
 
         for(var j = 1; j < p.length; j++) {
-            ret += 'L ' + p[j].x + ' ' + p[j].y + ' ';
+            var x = shorten(p[j].x);
+            var y = shorten(p[j].y);
+            ret += 'L ' + x + ' ' + y + ' ';
         }
         ret += 'Z" fill="' + path.color +'"/>\n';
     }

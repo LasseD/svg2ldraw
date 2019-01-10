@@ -10,9 +10,11 @@ SVG2LDRAW.Svg = function() {
 }
 
 SVG2LDRAW.Svg.prototype.toLDraw = function(svgObj) {
-    var d = new UTIL.TrapezoidalDecomposition(svgObj);
-    var t = d.buildTrapezoids();
+    var decomposition = new UTIL.TrapezoidalDecomposition(svgObj);
+    decomposition.buildTrapezoids();
     // TODO: Color transformation.
     // TODO: Trapezoids to LDraw
-    return t;
+    var ret = {width:svgObj.width, height:svgObj.height, paths:decomposition.trapezoids};
+
+    return ret;
 }
