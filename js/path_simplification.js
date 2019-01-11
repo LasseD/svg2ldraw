@@ -18,20 +18,28 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
     var parser = new DOMParser();
     var doc = parser.parseFromString(svgAsText, "text/xml");
     var svg = doc.children[0];
+    return this.simplifySvgDom(svg);
+}
 
+UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
     var svgObj = {width: Number(svg.attributes.width.value), 
                   height: Number(svg.attributes.height.value),
                   bg: 0, // TODO
                   paths: []};
 
-    var paths = doc.getElementsByTagName('path');
+    var paths = svg.getElementsByTagName('path');
     for(var i = 0; i < paths.length; i++) {
         var path = paths[i];
         var d = path.attributes.d.value;
-        var fill = path.attributes.fill;
         var c = '#000000';
-        if(fill) {
-            c = fill.value;
+        if(path.attributes.fill) {
+            c = path.attributes.fill.value;
+        }
+        else if(path.attributes.style) {
+            var style = path.attributes.style.value;
+            var fill = style.match(/(?:fill\:\s*)([\w\#]+)\;/);
+            if(fill)
+                c = fill[1];
         }
         this.handlePathD(d, svgObj.paths, c);
     }
@@ -83,6 +91,18 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
         p = [];
     }
 
+    function push() {
+        if(p.length > 0) {
+            var first = p[0];
+            var last = p[p.length-1];
+            if(first.x == x && first.y == y)
+                return;
+            if(last.x == x && last.y == y)
+                return;
+        }
+        p.push({x:x,y:y});
+    }
+
     for(var i = 0; i < tokens.length; i++) {
         var cmd = tokens[i];
         switch(cmd) {
@@ -92,7 +112,7 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             closePath();
             x = x+Number(tokens[++i]);
             y = y+Number(tokens[++i]);
-            p.push({x:x, y:y});
+            push();
             break;
         case 'Z':
         case 'z':
@@ -109,7 +129,7 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             y = y+Number(tokens[++i]);
             if(x == p[0].x && y == p[0].y)
                 closePath();
-            p.push({x:x, y:y});
+            push();
             break;
         case 'H':
             x = 0;
@@ -117,7 +137,7 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             x = x+Number(tokens[++i]);
             if(x == p[0].x && y == p[0].y)
                 closePath();
-            p.push({x:x, y:y});
+            push();
             break;
         case 'V':
             y = 0;
@@ -125,7 +145,7 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             y = y+Number(tokens[++i]);
             if(x == p[0].x && y == p[0].y)
                 closePath();
-            p.push({x:x, y:y});
+            push();
             break;
         case 'C':
             var x1 = Number(tokens[++i]);
@@ -138,7 +158,12 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             var p1 = {x:x1, y:y1};
             var p2 = {x:x2, y:y2};
             var p3 = {x:x3, y:y3};
-            p.push(...this.bezierRemover.handleCurve(p0, p1, p2, p3));
+            var curvePoints = this.bezierRemover.handleCurve(p0, p1, p2, p3);
+            for(var k = 0; k < curvePoints.length; k++) {
+                x = curvePoints[k].x;
+                y = curvePoints[k].y;
+                push();
+            }
             x = x3;
             y = y3;
             if(x == p[0].x && y == p[0].y)

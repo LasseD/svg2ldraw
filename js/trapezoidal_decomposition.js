@@ -31,6 +31,9 @@ UTIL.TrapezoidalDecomposition = function(svgObj) {
   Perform sweep line algorithm.
  */
 UTIL.TrapezoidalDecomposition.prototype.buildTrapezoids = function() {
+    // Ensure all paths turn clockwise:
+    this.orderPathsClockwise()
+
     // Set up events from line segments:
     this.createEvents();
     if(this.events.length < 4)
@@ -125,23 +128,23 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, 
         return;
     }
 
-    //var colors = ['red', 'green', 'blue', 'yellow', 'orange', 'gray', 'cyan', 'purple', 'pink', 'black']; var color = colors[(UTIL.IDX++)%colors.length];
     var color = belowIsMoving ? below.color : above.color;
+    //var colors = ['red', 'green', 'blue', 'yellow', 'orange', 'lime', 'cyan', 'purple', 'pink', 'black']; var color = colors[(UTIL.IDX++)%colors.length];
     this.trapezoids.push({points:points, color:color});
+    /*console.log(color + " x=" + leftX + "->" + rightX + 
+                ", below y=" + p1.y + "->" + p4.y + ", " + below.color + (below.colorAbove?'^':'v') +
+                ", above y=" + p2.y + "->" + p3.y + ", " + above.color + (above.colorAbove?'^':'v'));//*/
+    }
     if(belowIsMoving)
         below.left = p4;
     if(aboveIsMoving)
         above.left = p3;
-    /*console.log(color + " x=" + leftX + "->" + rightX + 
-                ", below y=" + p1.y + "->" + p4.y + ", " + below.color + (below.colorAbove?'^':'v') +
-                ", above y=" + p2.y + "->" + p3.y + ", " + above.color + (above.colorAbove?'^':'v'));//*/
 }
 
 UTIL.TrapezoidalDecomposition.prototype.handleStartEvent = function(e) {
-    if(this.sweepLine.length > 0 && !(this.sweepLine.x == e.p.x && this.sweepLine.y == e.p.y)) { // Empty sweep line or we were already here: Simply insert line!
+    //console.log('s ' + e.p.x +','+ e.p.y);
+    if(this.sweepLine.length > 0 && !(this.sweepLine.x == e.p.x && this.sweepLine.y == e.p.y)) {
         var [above, below] = this.findAboveAndBelowLinesForPoint({x:e.p.x+0.0000001, y:e.p.y});
-
-        // Create new trapezoid and update 'below.left':
         if(below && above) {
             this.buildTrapezoid(above, below, e.p.x);
         }
@@ -153,6 +156,7 @@ UTIL.TrapezoidalDecomposition.prototype.handleStartEvent = function(e) {
 }
 
 UTIL.TrapezoidalDecomposition.prototype.handleEndEvent = function(e) {
+    //console.log('e ' + e.p.x +','+ e.p.y);
     // Find and remove line in sweep line:
     var lineIdx;
     for(var i = 0; true; i++) {
@@ -179,6 +183,36 @@ UTIL.TrapezoidalDecomposition.prototype.handleEndEvent = function(e) {
     this.sweepLine.y = e.p.y;
 }
 
+UTIL.TrapezoidalDecomposition.prototype.orderPathsClockwise = function() {
+    var paths = this.svgObj.paths;    
+    for(var i = 0; i < paths.length; i++) {
+        var path = paths[i];
+        var pts = path.points;
+        if(pts.length < 3) {
+            continue;
+        }
+
+        var prev = pts[pts.length-1], prevprev = pts[pts.length-2];
+        var min = prev;
+        var minTurnsLeft;
+        for(var j = 0; j < pts.length; j++) {
+            var p = pts[j];
+
+            if(prev.x == min.x && prev.y == min.y)
+                minTurnsLeft = UTIL.leftTurn(prevprev, prev, p);
+            if(min > p.x || (min.x == p.x && min.y > p.y))
+                min = p;
+            prevprev = prev;
+            prev = p;
+        }
+
+        if(!minTurnsLeft) {
+            console.log('Flipping path ' + i + ' with ' + pts.length + ' points');
+            pts.reverse();
+        }
+    }    
+}
+
 UTIL.TrapezoidalDecomposition.prototype.createEvents = function() {
     var paths = this.svgObj.paths;
     for(var i = 0; i < paths.length; i++) {
@@ -188,42 +222,25 @@ UTIL.TrapezoidalDecomposition.prototype.createEvents = function() {
             console.warn("Skipping events for degenerate path (" + i + ")");
             continue;
         }
-        var events = [];
 
-        var prev = pts[pts.length-1], prevprev = pts[pts.length-2];
-        var minX = prev.x;
-        var minTurnsLeft;
+        var prev = pts[pts.length-1];
         for(var j = 0; j < pts.length; j++) {
             var p = pts[j];
 
-            if(prev.x == minX)
-                minTurnsLeft = UTIL.leftTurn(prevprev, prev, p);
-            if(minX > p.x)
-                minX = p.x;
-            prevprev = prev;
-            prev = p;
-
-            if(prevprev.x == p.x)
+            if(prev.x == p.x) {
+                prev = p;
                 continue; // Ignore vertical lines
-            var p1 = prevprev, p2 = p, colorAbove = true;
+            }
+            var p1 = prev, p2 = p, colorAbove = true;
             if(p2.x < p1.x) { // Swap line points to ensure p1 is to the left of p2
                 p1 = p;
-                p2 = prevprev;
+                p2 = prev;
                 colorAbove = false;
             }
             var e1 = {end:1, line:{p1:p1, p2:p2, colorAbove:colorAbove, left:p1, color:path.color}, p:p2};
             var e2 = {end:0, line:{p1:p1, p2:p2, colorAbove:colorAbove, left:p1, color:path.color}, p:p1};
-            events.push(e1, e2);
+            this.events.push(e1, e2);
+            prev = p;
         }
-
-        if(!minTurnsLeft) {
-            //console.log("Reversing winding for path " + i);
-            function flip(e) {
-                e.line.colorAbove = !e.line.colorAbove;
-            }
-            events.forEach(flip);
-        }
-        
-        this.events.push(...events);
     }
 }

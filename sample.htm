@@ -5,13 +5,15 @@
     <title>Sample Conversion from SVG to LDraw</title>
     <meta name="viewport" content="width=device-width" />
  </head>
- <body>
+ <body onload="convert_svg();">
   <script src="js/path_simplification.js"></script>
   <script src="js/bezier_removal.js"></script>
   <script src="js/trapezoidal_decomposition.js"></script>
   <script src="js/svg2ldraw.js"></script>
-
+<!--
+-->
   <h3>SVG to Convert</h3>
+<!--  <object id="svg_container" data="sample_files/pro.svg" type="image/svg+xml"></object> -->
   <div id="svg_container">
 <svg width="300" height="100" xmlns="http://www.w3.org/2000/svg">  
   <path d="M10 10 H 90 V 90 H 10 L 50 50 l -30 -5 L 10 10 M 110 10 h 50 v 20 z m 0 50 h 50 v 20 Z" fill="green"/>
@@ -20,9 +22,7 @@
   <path d="M 210 50 L 260 20 L 280 90 L 210 50" fill="blue" />
   <path d="M 225 49 L 242 41 L 258 62 Z" fill="red" />
 </svg>
-  </div>
-  <pre id="svg_content">
-  </pre>
+</div>
 
   <h3>Simplified SVG</h3>
   <div id="svg_simplified">
@@ -36,12 +36,13 @@
 
   </pre>
   <script>
+function convert_svg() {
+   //var svg = document.getElementById('svg_container').contentDocument.firstChild;
    var svg = document.getElementById('svg_container').innerHTML;
-   document.getElementById('svg_content').appendChild(document.createTextNode(svg));
 
    // Simplify:
-   var simplifier = new UTIL.PathSimplification(0.2);
-   var simplified = simplifier.simplifySvg(svg);
+   var simplifier = new UTIL.PathSimplification(0.101);
+   var simplified = simplifier.simplifySvg(svg); // TODO: Add Dom suffix to method name for non-inlined svg
 
    var simplifiedSvg = simplifier.svgObjToSvg(simplified);
    document.getElementById('svg_simplified').innerHTML = simplifiedSvg;
@@ -53,6 +54,7 @@
    document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
    //document.getElementById('ldraw_result').innerHTML = JSON.stringify(lDrawContent);
    document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawSvg));
+}
   </script>
  </body>
 </html>

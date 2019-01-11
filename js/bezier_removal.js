@@ -8,8 +8,8 @@ UTIL.BezierRemover = function(pointsPerPixel) {
 UTIL.BezierRemover.prototype.handleCurve = function(p0, p1, p2, p3) {
     var dx = p0.x-p3.x, dy = p0.y-p3.y;
     var curveLength = Math.sqrt(dx*dx + dy*dy);
-    var pointsPerCurve = curveLength*this.pointsPerPixel;
-    console.log("Drawing " + pointsPerCurve + " points on curve of length " + curveLength);
+    var pointsPerCurve = Math.ceil(curveLength*this.pointsPerPixel);
+    //console.log("Drawing " + pointsPerCurve + " points on curve of length " + curveLength);
     var ret = [];
     for(var i = 0; i < pointsPerCurve; i++) {
         var t = (i+1)/pointsPerCurve, t2 = t*t, t3 = t2*t;
