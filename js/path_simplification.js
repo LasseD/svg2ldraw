@@ -47,13 +47,18 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
     return svgObj;
 }
 
+UTIL.PathSimplification.prototype.decompositionToSvg = function(w, h, decomposition) {
+    var svg = {width:w, height:h, paths:decomposition.trapezoids};
+    return this.svgObjToSvg(svg);
+}
+
 UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
     var ret = '<svg width="' + svgObj.width + '" height="' + svgObj.height + '" xmlns="http://www.w3.org/2000/svg">\n';
 
     function shorten(x) {
         if(x == Math.floor(x))
           return x;
-        return x.toPrecision(4);
+        return x.toFixed(3);
     }
 
     for(var i = 0; i < svgObj.paths.length; i++) {

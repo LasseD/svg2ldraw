@@ -1,0 +1,10 @@
+<?xml version="1.0" standalone="yes"?>
+<svg width="300" height="100" xmlns="http://www.w3.org/2000/svg">  
+ <path d="M10 10 H 90 V 90 H 10 L 50 50 l -30 -5 L 10 10 " fill="#BBFF00"/>
+ <path d="M 110 10 h 50 l -5 10 l 5 10 z m 0 50 h 50 v 20 Z" fill="#00FF00"/>
+ <path d="M 110 15 L 160 35 C 160 45, 100 25, 110 15" />
+
+ <path d="M 200 0 h 100 l -20 50 l 20 50 h -100 Z" fill="#FF0000" />
+ <path d="M 210 50 L 260 20 L 280 90 L 210 50" fill="#0000FF" />
+ <path d="M 225 49 L 242 41 L 258 62 Z" fill="#FFFF00" />
+</svg>
