@@ -21,55 +21,90 @@
   <script src="js/svg2ldraw.js"></script>
 
   <div id="select_svg">
-   <h3>Step 1 - SVG File</h3>
-   <span class="desc">Select the SVG file using a URL, a file, or simply paste the content into the text area below</span>
+   <h3>Step 1 - SVG Image</h3>
+   <span class="desc">
+     Select the SVG image using either a URL, a file, or paste the content into the text area below
+   </span>
    <span class="choice">
-    <label for="svg_url">Select the SVG file from a website URL</label>
-    <input id="svg_url" name="svg_url" type="text" /></span>
+    <label for="svg_url">URL from a website</label>
+    <input id="svg_url" name="svg_url" type="text" />
+   </span>
    <span class="choice">
-    <label for="svg_file">Or from a file on your device</label>
-    <input id="svg_file" name="svg_file" type="file" />
+    <label for="svg_file">File on your device</label>
+    <input id="svg_file" name="svg_file" type="file" accept="image/svg+xml" onchange="readSvgFromFile(event);" />
    </span>
    <span class="choice">
     <textarea id="svg_content" rows="20">&lt;!-- Or simply paste the content of the SVG file here --&gt;</textarea>
    </span>
-   <object id="svg_container" data="sample_files/test.svg" type="image/svg+xml"></object> 
+   <div id="svg_container"></div>
   </div>
 
   <div id="select_size">
-   <h3>Step 2 - Scaling</h3>
-   <span class="desc">Select the size with 'LDU' as unit. As an example. A 1x1 brick is 20 LDU wide and 24 LDU tall</span>
-   <input id="svg_url" type="text" />
-   
+   <h3>Step 2 - Size and Scaling</h3>
+   <span class="desc">
+     Select the size with 'LDU' as unit. As an example. A 1x1 brick is 20 LDU wide and 24 LDU tall
+   </span>
+   <span class="choice">
+    <label for="width">Width</label>
+    <input id="width" name="width" type="text" onchange="setWidth();" />
+   </span>
+   <span class="choice">
+    <label for="height">Height</label>
+    <input id="height" name="height" type="text" onchange="setHeight();" />
+   </span>
+
+   <span class="desc">
+     If the svg contains Bezier curves, then they have to be simplified for LDraw. Please select how many many points should be added.
+   </span>
+   <span class="choice">
+    <label for="pointsPerPixel">Points per 100 pixels of the original SVG image</label>
+    <input id="pointsPerPixel" name="pointsPerPixel" type="text" value="3" />
+   </span>
   </div>
 
-
-  <h3>Simplified SVG</h3>
-  <div id="svg_simplified">
+  <div id="select_colors">
+   <h3>Step 3 - Adjust Colors</h3>
+   <span class="choice">
+    <label for="color">Color</label>
+    <input id="color" name="color" type="text" />
+   </span>
   </div>
-  <pre id="svg_content_simplified"></pre>
 
-  <h3>LDraw</h3>
+  <h3>Step 4 - Download LDraw File</h3>
   <div id="svg_ldraw">
   </div>
-  <pre id="ldraw_result"></pre>
+  <textarea id="ldraw_result" rows="10"></textarea>
+  <input type="submit" value="Copy LDraw file" />
+
   <script>
+function convert_svg(svg, w, h) {
+  // Update text area:
+  $('#svg_content').val(svg);
 
-
-
-/*function convert_svg() {
-  console.log('Running convert_svg. TODO: Update this method!');
-  var svg = document.getElementById('svg_container').contentDocument.firstChild;
+  console.log('Converting SVG!');
 
   // Simplify:
-  var simplifier = new UTIL.PathSimplification(0.03); 
-  var simplified = simplifier.simplifySvgDom(svg);
+  var ppp = $('#pointsPerPixel')[0].value;
+  var simplifier = new UTIL.PathSimplification(ppp / 100);
+  var simplified = simplifier.simplifySvg(svg);
 
-  var simplifiedSvg = simplifier.svgObjToSvg(simplified);
-  document.getElementById('svg_simplified').innerHTML = simplifiedSvg;
-  document.getElementById('svg_content_simplified').appendChild(document.createTextNode(simplifiedSvg));
-   
+  // Resizing:
+  var scale = 1;
+  if(w <= 0 && h <= 0) {
+    $('#width').val(simplified.width);
+    $('#height').val(simplified.height);
+  }
+  else if(w > 0) {
+    scale = w / simplified.width;
+    $('#height').val(parseInt(scale * simplified.height));
+  }
+  else {
+    scale = h / simplified.height;
+    $('#width').val(parseInt(scale * simplified.width));
+  }
+
   // Decomposition:
+  var simplifiedSvg = simplifier.svgObjToSvg(simplified);
   var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
   decomposition.buildTrapezoids();
 
@@ -77,12 +112,41 @@
   colorTransformation.transformPaths(decomposition.trapezoids);
 
   // LDraw:
-  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, 4);
+  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, scale);
   var lDrawSvg = simplifier.decompositionToSvg(simplified.width, simplified.height, decomposition);
 
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
-  document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawContent));
-}*/
+  $('#ldraw_result').val(lDrawContent);
+}
+
+function readSvgFromFile(event) {
+  var reader = new FileReader();
+  reader.onload = function(){
+    var svgTxt = reader.result;
+    $('#svg_container').append(svgTxt);
+    $('width').val('');
+    $('height').val('');
+    convert_svg(svgTxt, 0, 0);
+  };
+  reader.readAsText(event.target.files[0]);
+}
+
+function setWidth() {
+  var w = $('#width')[0].value;
+  console.log("Resizing to width: " + w);
+
+  var svgTxt = $('#svg_container')[0].innerHTML;
+  convert_svg(svgTxt, w, 0);
+}
+
+function setHeight() {
+  var h = $('#height')[0].value;
+  console.log("Resizing to height: " + h);
+
+  var svgTxt = $('#svg_container')[0].innerHTML;
+  convert_svg(svgTxt, 0, h);
+}
+
   </script>
  </body>
 </html>

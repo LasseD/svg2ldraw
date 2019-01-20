@@ -37,6 +37,8 @@ UTIL.TrapezoidalDecomposition = function(svgObj) {
     this.events = [];
     this.sweepLine = [];
     this.trapezoids = [];
+    this.width = svgObj.width;
+    this.height = svgObj.height;
 }
 
 /*

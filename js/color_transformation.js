@@ -10,9 +10,10 @@ LDR.int2RGB = function(i) {
 }
 
 LDR.ColorTransformation = function(map) {
+    console.log("Constructed color transformation. Initial colors: " + map);
     this.colors = [];
     this.map = map || {};
-    
+
     function toHex(i) {
         var h = i.toString(16);
         if (h.length == 1) {
@@ -41,8 +42,9 @@ LDR.ColorTransformation.prototype.transformPaths = function(paths) {
 }
 
 LDR.ColorTransformation.prototype.transform = function(htmlColor) {
-    if(this.map[htmlColor])
+    if(this.map.hasOwnProperty(htmlColor)) {
         return this.map[htmlColor];
+    }
 
     if(htmlColor.startsWith('#'))
         htmlColor = htmlColor.slice(1);

@@ -6,12 +6,13 @@ var SVG2LDRAW = {};
   - Paths consisting of the commands mentioned in path_simplification.js
  */
 SVG2LDRAW.Svg = function() {
-    this.precision = 4;
+    this.precision = 4; // LDraw output precision
 }
 
 SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scale) {
-    scale = scale || 1;
-    
+    const xSub = decomposition.width*0.5*scale;
+    const yAdd = decomposition.height*0.5*scale;
+
     const precision = this.precision;
     function convert(x) {
         x = x*scale;
@@ -31,7 +32,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scale) {
         const pts = path.points;
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
-            ret += " " + convert(pts[j].x) + " 0 " + convert(pts[j].y);
+            ret += " " + convert(pts[j].x-xSub) + " 0 " + convert(-pts[j].y+yAdd);
         }
         ret += '\n';
     }
