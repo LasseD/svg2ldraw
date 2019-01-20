@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+ <head>
+    <meta charset=utf-8>
+    <title>svg2ldraw</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      .choice, textarea {
+        display: block;
+        width: 100%;
+      }
+    </style>
+ </head>
+ <body>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/colors.js"></script>
+  <script src="js/color_transformation.js"></script>
+  <script src="js/path_simplification.js"></script>
+  <script src="js/bezier_removal.js"></script>
+  <script src="js/trapezoidal_decomposition.js"></script>
+  <script src="js/svg2ldraw.js"></script>
+
+  <div id="select_svg">
+   <h3>Step 1 - SVG File</h3>
+   <span class="desc">Select the SVG file using a URL, a file, or simply paste the content into the text area below</span>
+   <span class="choice">
+    <label for="svg_url">Select the SVG file from a website URL</label>
+    <input id="svg_url" name="svg_url" type="text" /></span>
+   <span class="choice">
+    <label for="svg_file">Or from a file on your device</label>
+    <input id="svg_file" name="svg_file" type="file" />
+   </span>
+   <span class="choice">
+    <textarea id="svg_content" rows="20">&lt;!-- Or simply paste the content of the SVG file here --&gt;</textarea>
+   </span>
+   <object id="svg_container" data="sample_files/test.svg" type="image/svg+xml"></object> 
+  </div>
+
+  <div id="select_size">
+   <h3>Step 2 - Scaling</h3>
+   <span class="desc">Select the size with 'LDU' as unit. As an example. A 1x1 brick is 20 LDU wide and 24 LDU tall</span>
+   <input id="svg_url" type="text" />
+   
+  </div>
+
+
+  <h3>Simplified SVG</h3>
+  <div id="svg_simplified">
+  </div>
+  <pre id="svg_content_simplified"></pre>
+
+  <h3>LDraw</h3>
+  <div id="svg_ldraw">
+  </div>
+  <pre id="ldraw_result"></pre>
+  <script>
+
+
+
+/*function convert_svg() {
+  console.log('Running convert_svg. TODO: Update this method!');
+  var svg = document.getElementById('svg_container').contentDocument.firstChild;
+
+  // Simplify:
+  var simplifier = new UTIL.PathSimplification(0.03); 
+  var simplified = simplifier.simplifySvgDom(svg);
+
+  var simplifiedSvg = simplifier.svgObjToSvg(simplified);
+  document.getElementById('svg_simplified').innerHTML = simplifiedSvg;
+  document.getElementById('svg_content_simplified').appendChild(document.createTextNode(simplifiedSvg));
+   
+  // Decomposition:
+  var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
+  decomposition.buildTrapezoids();
+
+  var colorTransformation = new LDR.ColorTransformation(); // Option initial mapping as argument
+  colorTransformation.transformPaths(decomposition.trapezoids);
+
+  // LDraw:
+  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, 4);
+  var lDrawSvg = simplifier.decompositionToSvg(simplified.width, simplified.height, decomposition);
+
+  document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
+  document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawContent));
+}*/
+  </script>
+ </body>
+</html>
