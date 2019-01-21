@@ -27,7 +27,7 @@
    </span>
    <span class="choice">
     <label for="svg_url">URL from a website</label>
-    <input id="svg_url" name="svg_url" type="text" />
+    <input id="svg_url" name="svg_url" type="text" onchange="readSvgFromUrl(event);" />
    </span>
    <span class="choice">
     <label for="svg_file">File on your device</label>
@@ -74,7 +74,7 @@
   <div id="svg_ldraw">
   </div>
   <textarea id="ldraw_result" rows="10"></textarea>
-  <input type="submit" value="Copy LDraw file" />
+  <button onclick="copyToClipboard();">Copy LDraw file</button>
 
   <script>
 function convert_svg(svg, w, h) {
@@ -131,6 +131,28 @@ function readSvgFromFile(event) {
   reader.readAsText(event.target.files[0]);
 }
 
+function readSvgFromUrl(event) {
+  var url = event.target.value;
+  console.log('Reading from URL ' + url);
+  var req = new XMLHttpRequest();
+  req.onreadystatechange = function() {
+    console.log('State change!');
+    if(req.readyState != 4)
+      return;
+    if(req.status != 200) {
+      console.dir(event);
+      return;
+    }
+    var svgTxt = req.responseText;
+    $('#svg_container').append(svgTxt);
+    $('width').val('');
+    $('height').val('');
+    convert_svg(svgTxt, 0, 0);
+  };
+  req.open('GET', url, true);
+  req.send();
+}
+
 function setWidth() {
   var w = $('#width')[0].value;
   console.log("Resizing to width: " + w);
@@ -145,6 +167,11 @@ function setHeight() {
 
   var svgTxt = $('#svg_container')[0].innerHTML;
   convert_svg(svgTxt, 0, h);
+}
+
+function copyToClipboard() {
+  $('#ldraw_result')[0].select();
+  document.execCommand('copy');
 }
 
   </script>

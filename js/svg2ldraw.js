@@ -25,6 +25,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scale) {
     ret += `
 0 Author: svg2ldraw
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
+0 BFC CERTIFY CCW
 `;
     const paths = decomposition.trapezoids;
     for(var i = 0; i < paths.length; i++) {
