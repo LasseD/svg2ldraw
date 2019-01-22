@@ -9,6 +9,14 @@
         display: block;
         width: 100%;
       }
+      .color_cube {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        border: 1px solid black;
+        margin-left: 0.5em;
+        margin-right: 0.5em;
+      }
     </style>
  </head>
  <body>
@@ -65,10 +73,11 @@
 
   <div id="select_colors">
    <h3>Step 3 - Adjust Colors</h3>
-   <span class="choice">
-    <label for="color">Color</label>
-    <input id="color" name="color" type="text" />
+   <span class="desc">
+     Here you can replace the colors that have been identified.
+     Color 16 is the 'base color' which will be replaced with another color when used in a model.
    </span>
+   <div id="color_choices"></div>
   </div>
 
   <h3>Step 4 - Download LDraw File</h3>
@@ -78,9 +87,61 @@
   <button onclick="copyToClipboard();">Copy LDraw file</button>
 
   <script>
+var colorTransformation = new LDR.ColorTransformation();
+
+function resetColors() {
+  colorTransformation = new LDR.ColorTransformation();
+  $('#color_choices').empty();
+}
+
+function setColor(htmlColor, event) {
+  var c = colorTransformation.colors[event.value];
+  console.log('Setting color ' + htmlColor + ' -> ' + c.id);
+  colorTransformation.map[htmlColor] = c;
+  convert_svg(null, 1, 1);
+}
+
+function makeColorCube(hex) {
+  var cube = document.createElement('span');
+  cube.setAttribute('class', 'color_cube');
+  cube.style.backgroundColor = hex;  
+  return cube;
+}
+
+function onColorMapped(caller, htmlColor, color) {
+  var parent = $('#color_choices')[0];
+  var spanEle = document.createElement('span'); parent.appendChild(spanEle);
+  spanEle.setAttribute('class', 'choice');
+
+  var labelEle = document.createElement('label'); spanEle.appendChild(labelEle);
+  labelEle.innerHTML = htmlColor;
+  labelEle.append(makeColorCube(htmlColor));
+
+  var selectEle = document.createElement('select'); spanEle.appendChild(selectEle);
+  selectEle.setAttribute('onchange', "setColor('" + htmlColor + "', this)");
+
+  for(var i = 0; i < caller.colors.length; i++) {
+    var c = caller.colors[i];
+    var optionEle = document.createElement('option'); selectEle.appendChild(optionEle);
+    optionEle.setAttribute('value', i);
+    optionEle.innerHTML = c.text;
+    optionEle.append(makeColorCube(c.hex));
+    if(c.id == color.id) {
+      optionEle.setAttribute('selected', 'selected');
+    }
+  }
+}
+
+var scale = 1;
+
 function convert_svg(svg, w, h) {
   // Update text area:
-  $('#svg_content').val(svg);
+  if(!svg) {
+    svg = $('#svg_container')[0].innerHTML;
+  }
+  else {
+    $('#svg_content').val(svg);
+  }
 
   // Simplify:
   var ppp = $('#pointsPerPixel')[0].value;
@@ -88,10 +149,12 @@ function convert_svg(svg, w, h) {
   var simplified = simplifier.simplifySvg(svg);
 
   // Resizing:
-  var scale = 1;
   if(w <= 0 && h <= 0) {
     $('#width').val(simplified.width);
     $('#height').val(simplified.height);
+  }
+  else if(w > 0 && h > 0) {
+    // Both updating! - reuse old scale.
   }
   else if(w > 0) {
     scale = w / simplified.width;
@@ -118,8 +181,8 @@ function convert_svg(svg, w, h) {
     }
   }
 
-  var colorTransformation = new LDR.ColorTransformation(); // Option initial mapping as argument
-  colorTransformation.transformPaths(decomposition.trapezoids);
+  // Colors:
+  colorTransformation.transformPaths(decomposition.trapezoids, onColorMapped);
 
   // LDraw:
   var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, scale);
@@ -136,6 +199,7 @@ function readSvgFromFile(event) {
     $('#svg_container').empty().append(svgTxt);
     $('width').val('');
     $('height').val('');
+    resetColors();
     convert_svg(svgTxt, 0, 0);
   };
   reader.readAsText(event.target.files[0]);
@@ -156,6 +220,7 @@ function readSvgFromUrl(event) {
     $('#svg_container').empty().append(svgTxt);
     $('width').val('');
     $('height').val('');
+    resetColors();
     convert_svg(svgTxt, 0, 0);
   };
   req.open('GET', url, true);
@@ -165,24 +230,19 @@ function readSvgFromUrl(event) {
 function setWidth() {
   var w = $('#width')[0].value;
   console.log("Resizing to width: " + w);
-
-  var svgTxt = $('#svg_container')[0].innerHTML;
-  convert_svg(svgTxt, w, 0);
+  convert_svg(null, w, 0);
 }
 
 function setHeight() {
   var h = $('#height')[0].value;
   console.log("Resizing to height: " + h);
-
-  var svgTxt = $('#svg_container')[0].innerHTML;
-  convert_svg(svgTxt, 0, h);
+  convert_svg(null, 0, h);
 }
 
 function copyToClipboard() {
   $('#ldraw_result')[0].select();
   document.execCommand('copy');
 }
-
   </script>
  </body>
 </html>

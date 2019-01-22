@@ -1,6 +1,6 @@
-"use strict";
+'use strict';
 
-LDR.int2RGB = function(i) {    
+LDR.int2RGB = function(i) {
     const b = (i & 0xff);
     i = i >> 8;
     const g = (i & 0xff);
@@ -9,10 +9,9 @@ LDR.int2RGB = function(i) {
     return [r, g, b];
 }
 
-LDR.ColorTransformation = function(map) {
-    console.log("Constructed color transformation. Initial colors: " + map);
+LDR.ColorTransformation = function() {
+    this.map = {};
     this.colors = [];
-    this.map = map || {};
 
     function toHex(i) {
         var h = i.toString(16);
@@ -28,27 +27,31 @@ LDR.ColorTransformation = function(map) {
             continue;
         var [r,g,b] = LDR.int2RGB(c.value);
         const hex = '#' + toHex(r) + toHex(g) + toHex(b);
-        this.colors.push({r:r, g:g, b:b, id:i, c:c, hex:hex});
+        const text = i + " - " + c.name;
+        this.colors.push({r:r, g:g, b:b, id:i, c:c, hex:hex, text:text});
     }
 }
 
-LDR.ColorTransformation.prototype.transformPaths = function(paths) {
+    LDR.ColorTransformation.prototype.transformPaths = function(paths, onColorMapped) {
     for(var i = 0; i < paths.length; i++) {
         const path = paths[i];
-        var color = this.transform(path.color);
+        var color = this.transform(path.color, onColorMapped);
         path.color = color.hex;
         path.lDrawColor = color.id;
     }
 }
 
-LDR.ColorTransformation.prototype.transform = function(htmlColor) {
+LDR.ColorTransformation.prototype.transform = function(htmlColor, onColorMapped) {
     if(this.map.hasOwnProperty(htmlColor)) {
         return this.map[htmlColor];
     }
 
+    var key;
     if(htmlColor.startsWith('#'))
-        htmlColor = htmlColor.slice(1);
-    const colorAsInt = parseInt(htmlColor, 16);
+        key = htmlColor.slice(1);
+    else
+        key = htmlColor;
+    const colorAsInt = parseInt(key, 16);
     const [r,g,b] = LDR.int2RGB(colorAsInt);
     
     const colors = this.colors;
@@ -68,5 +71,7 @@ LDR.ColorTransformation.prototype.transform = function(htmlColor) {
         }
     }
     this.map[htmlColor] = best;
+
+    onColorMapped(this, htmlColor, best);
     return best;
 }
