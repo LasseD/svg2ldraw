@@ -7,6 +7,7 @@
  </head>
  <body onload="convert_svg();">
   <script src="js/colors.js"></script>
+  <script src="js/geometry.js"></script>
   <script src="js/color_transformation.js"></script>
   <script src="js/path_simplification.js"></script>
   <script src="js/bezier_removal.js"></script>
@@ -14,7 +15,7 @@
   <script src="js/svg2ldraw.js"></script>
 
   <h3>SVG to Convert</h3>
-  <object id="svg_container" data="sample_files/pro.svg" type="image/svg+xml"></object> 
+  <object id="svg_container" data="sample_files/overlapping1.svg" type="image/svg+xml"></object> 
 
   <h3>Simplified SVG</h3>
   <div id="svg_simplified">
@@ -38,8 +39,19 @@ function convert_svg() {
   document.getElementById('svg_content_simplified').appendChild(document.createTextNode(simplifiedSvg));
    
   // Decomposition:
-  var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
-  decomposition.buildTrapezoids();
+  var decomposition = new UTIL.TrapezoidalDecomposition(simplified, 0);
+  if(!decomposition.buildTrapezoids()) {
+    console.log('Intersections discovered in SVG file. Layered approach will be used.');
+    for(var i = 0; i < decomposition.paths.length; i++) {
+      var s = {paths: [decomposition.paths[i]]};
+      var d = new UTIL.TrapezoidalDecomposition(s, -i*0.01);
+      if(!d.buildTrapezoids()) {
+        console.warn('Self-intersections found in path ' + i);
+        continue;
+      }
+      decomposition.trapezoids.push(...d.trapezoids);
+    }
+  }
 
   var colorTransformation = new LDR.ColorTransformation(); // Option initial mapping as argument
   colorTransformation.transformPaths(decomposition.trapezoids);

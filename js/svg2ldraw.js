@@ -33,7 +33,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scale) {
         const pts = path.points;
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
-            ret += " " + convert(pts[j].x-xSub) + " 0 " + convert(-pts[j].y+yAdd);
+            ret += " " + convert(pts[j].x-xSub) + " " + path.z + " " + convert(-pts[j].y+yAdd);
         }
         ret += '\n';
     }

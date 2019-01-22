@@ -1,4 +1,4 @@
-var UTIL = {};
+'user strict';
 
 UTIL.PathSimplification = function(pointsPerPixel) {
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
@@ -105,7 +105,7 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             if(last.x == x && last.y == y)
                 return;
         }
-        p.push({x:x,y:y});
+        p.push(new UTIL.Point(x,y));
     }
 
     for(var i = 0; i < tokens.length; i++) {
@@ -159,10 +159,10 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             var y2 = Number(tokens[++i]);
             var x3 = Number(tokens[++i]);
             var y3 = Number(tokens[++i]);
-            var p0 = {x:x, y:y};
-            var p1 = {x:x1, y:y1};
-            var p2 = {x:x2, y:y2};
-            var p3 = {x:x3, y:y3};
+            var p0 = new UTIL.Point(x, y);
+            var p1 = new UTIL.Point(x1, y1);
+            var p2 = new UTIL.Point(x2, y2);
+            var p3 = new UTIL.Point(x3, y3);
             var curvePoints = this.bezierRemover.handleCurve(p0, p1, p2, p3);
             for(var k = 0; k < curvePoints.length; k++) {
                 x = curvePoints[k].x;
