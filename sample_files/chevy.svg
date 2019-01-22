@@ -1,0 +1,63 @@
+<?xml version="1.0" standalone="yes"?>
+<svg width="1280" height="320" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 420 0 L 420 60 L 110 60 L 1160 228 L 1255 60 L 840 60 L 840 0 Z" fill="#c6cbcd"/>
+
+  <path d="M 420 0 L 420 60 L 455 65 L 455 10 Z" fill="#5c564f"/>
+
+  <path d="M 465 15 L 465 70 L 110 60 L 20 230 L 1105 90 L 1120 75 L 790 70 L 790 15 L 690 15 Z" fill="#a1a5a3"/>
+
+  <!-- Dark yellow -->
+  <path d="M 476 20
+L 476 80
+L 185 80
+L 130 190 
+L 455 190
+L 455 260 
+L 790 261 
+L 790 20 Z" fill="#c39a3b"/>
+
+<!-- Light yellow -->
+<path d="M 625 30 L 625 55 L 549 85 L 296 177 L 462 176 L 462 250 L 625 250 L 625 185 L 1060 185 L 1115 80 L 780 80 L 780 30 Z" fill="#d7b55d"/>
+
+<!-- Lower frame -->
+  <path d="M 1150 225
+L 790 183
+L 789 260 
+L 820 300
+L 425 300
+L 455 260
+L 457 182 
+L 20 230
+L 8 260
+L 410 260
+L 410 320 
+L 840 320
+L 840 260
+L 1150 260
+L 1250 70
+L 1130 75
+L 1120 95
+L 1200 130 
+Z" fill="#5c564f"/>
+
+  <path d="
+M 1146 227 
+L 1065 182 
+L 793 182
+L 830 226
+Z" fill="#a1a5a3"/>
+
+<!-- Light left gray -->
+<path d="
+M 37 228 
+L 400 224 
+L 433 186 
+L 130 190 
+Z" fill="#c6cbcd"/>
+
+<!-- Dark gray lower -->
+  <path d="M 620 260 
+L 620 300 
+L 824 300 
+L 790 260 Z" fill="#a1a5a3"/>
+</svg>

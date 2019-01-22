@@ -15,7 +15,7 @@
   <script src="js/svg2ldraw.js"></script>
 
   <h3>SVG to Convert</h3>
-  <object id="svg_container" data="sample_files/overlapping1.svg" type="image/svg+xml"></object> 
+  <object id="svg_container" data="sample_files/chevy.svg" type="image/svg+xml"></object> 
 
   <h3>Simplified SVG</h3>
   <div id="svg_simplified">
@@ -31,7 +31,7 @@ function convert_svg() {
   var svg = document.getElementById('svg_container').contentDocument.firstChild;
 
   // Simplify:
-  var simplifier = new UTIL.PathSimplification(0.03); 
+  var simplifier = new UTIL.PathSimplification(0.001);
   var simplified = simplifier.simplifySvgDom(svg);
 
   var simplifiedSvg = simplifier.svgObjToSvg(simplified);
@@ -41,7 +41,7 @@ function convert_svg() {
   // Decomposition:
   var decomposition = new UTIL.TrapezoidalDecomposition(simplified, 0);
   if(!decomposition.buildTrapezoids()) {
-    console.log('Intersections discovered in SVG file. Layered approach will be used.');
+    console.log('Intersections discovered in SVG file. Layered approach will be used. Number of paths: ' + decomposition.paths.length);
     for(var i = 0; i < decomposition.paths.length; i++) {
       var s = {paths: [decomposition.paths[i]]};
       var d = new UTIL.TrapezoidalDecomposition(s, -i*0.01);
@@ -49,12 +49,12 @@ function convert_svg() {
         console.warn('Self-intersections found in path ' + i);
         continue;
       }
-      decomposition.trapezoids.push(...d.trapezoids);
+      decomposition.trapezoids.push(... d.trapezoids);
     }
   }
 
   var colorTransformation = new LDR.ColorTransformation(); // Option initial mapping as argument
-  colorTransformation.transformPaths(decomposition.trapezoids);
+  colorTransformation.transformPaths(decomposition.trapezoids, function(){});
 
   // LDraw:
   var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, 4);

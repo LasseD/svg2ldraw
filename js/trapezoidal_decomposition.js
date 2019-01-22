@@ -50,8 +50,10 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoids = function() {
 
     // Set up events from line segments:
     this.createEvents();
-    if(this.events.length < 4)
+    if(this.events.length < 4) {
+	console.warn("Too few events for a decomposition.");
         return;
+    }
 
     // Sort events:
     this.sortEvents();
@@ -174,6 +176,7 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, 
     const leftX = Math.max(belowIsMoving ? below.left.x : below.p1.x,
                            aboveIsMoving ? above.left.x : above.p1.x);
     if(leftX >= rightX) {
+	console.warn('Trapezoid already in output.');
         return; // Trapezoid already output.
     }
 
@@ -259,14 +262,15 @@ UTIL.TrapezoidalDecomposition.prototype.orderPathsClockwise = function() {
         }
 
         var prev = pts[pts.length-1], prevprev = pts[pts.length-2];
-        var min = prev;
+        var minX = prev.x+1, minY;
         var minTurnsLeft;
         for(var j = 0; j <= pts.length; j++) {
             const p = pts[j % pts.length];
 
-            if(min.x > prev.x || (min.x == prev.x && min.y > prev.y)) {
+            if(minX > prev.x || (minX == prev.x && minY > prev.y)) {
                 minTurnsLeft = UTIL.leftTurn(prevprev, prev, p);
-                min = prev;
+                minX = prev.x;
+                minY = prev.y;
             }
             prevprev = prev;
             prev = p;

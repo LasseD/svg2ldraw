@@ -169,7 +169,7 @@ function convert_svg(svg, w, h) {
   var simplifiedSvg = simplifier.svgObjToSvg(simplified);
   var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
   if(!decomposition.buildTrapezoids()) {
-    console.log('Intersections discovered in SVG file. Layered approach will be used.');
+    console.log('Intersections discovered in SVG file. Layered approach will be used. Number of paths: ' + decomposition.paths.length);
     for(var i = 0; i < decomposition.paths.length; i++) {
       var s = {paths: [decomposition.paths[i]]};
       var d = new UTIL.TrapezoidalDecomposition(s, -i*0.01);
