@@ -2,12 +2,46 @@
 <html>
  <head>
     <meta charset=utf-8>
-    <title>svg2ldraw</title>
+    <title>svg2ldraw - Convert SVG Images to LDraw Patterns</title>
     <meta name="viewport" content="width=device-width" />
     <style>
-      .choice, textarea {
+      body {
+        font-family: "Arial","Helvetica",sans-serif;
+        padding: 0;
+        margin: 0;
+      }
+      h1, h3 {
+        text-transform: uppercase;
         display: block;
-        width: 100%;
+        text-align: center;
+        margin: 0;
+        padding: 0.5em;
+        font-size: 2em;
+      }
+      h1 {
+        background-color: #000;
+        color: white;
+      }
+      h3 {
+        background-color: #9DD;
+      }
+      .section {
+        display: block;
+        margin: 0.5em;
+      }
+      .desc {
+        margin: 0.5em;
+      }
+      .choice {
+        display: table;
+        margin: 0.5em;
+      }
+      .choice, textarea, button {
+        display: block;
+        width: 95%;
+      }
+      button {
+        height: 4em;
       }
       .color_cube {
         display: inline-block;
@@ -16,6 +50,10 @@
         border: 1px solid black;
         margin-left: 0.5em;
         margin-right: 0.5em;
+      }
+      #contact {
+        margin: 2em;
+        text-align: center;
       }
     </style>
  </head>
@@ -28,9 +66,11 @@
   <script src="js/bezier_removal.js"></script>
   <script src="js/trapezoidal_decomposition.js"></script>
   <script src="js/svg2ldraw.js"></script>
+  
+  <h1>svg2ldraw - Convert SVG Images to LDraw Patterns</h1>
 
-  <div id="select_svg">
-   <h3>Step 1 - SVG Image</h3>
+  <h3>Step 1 - SVG Image</h3>
+  <div id="select_svg" class="section">
    <span class="desc">
      Select the SVG image using either a URL, a file, or paste the content into the text area below
    </span>
@@ -48,17 +88,17 @@
    <div id="svg_container"></div>
   </div>
 
-  <div id="select_size">
-   <h3>Step 2 - Size and Scaling</h3>
+  <h3>Step 2 - Size and Scaling</h3>
+  <div id="select_size" class="section">
    <span class="desc">
      Select the size with 'LDU' as unit. As an example. A 1x1 brick is 20 LDU wide and 24 LDU tall
    </span>
    <span class="choice">
-    <label for="width">Width</label>
+    <label for="width">Width in LDU</label>
     <input id="width" name="width" type="text" onchange="setWidth();" />
    </span>
    <span class="choice">
-    <label for="height">Height</label>
+    <label for="height">Height in LDU</label>
     <input id="height" name="height" type="text" onchange="setHeight();" />
    </span>
 
@@ -66,25 +106,34 @@
      If the svg contains Bezier curves, then they have to be simplified for LDraw. Please select how many many points should be added.
    </span>
    <span class="choice">
-    <label for="pointsPerPixel">Points per 100 pixels of the original SVG image</label>
+    <label for="pointsPerPixel">Points per 100 pixels</label>
     <input id="pointsPerPixel" name="pointsPerPixel" type="text" value="3" onchange="setWidth();" />
    </span>
   </div>
 
-  <div id="select_colors">
-   <h3>Step 3 - Adjust Colors</h3>
+  <h3>Step 3 - Adjust Colors</h3>
+  <div id="select_colors" class="section">
    <span class="desc">
      Here you can replace the colors that have been identified.
-     Color 16 is the 'base color' which will be replaced with another color when used in a model.
+     Color 16 is the 'base color' which will be replaced with another color when used in a model. Colors appear once there is an SVG file.
    </span>
    <div id="color_choices"></div>
   </div>
 
   <h3>Step 4 - Download LDraw File</h3>
-  <div id="svg_ldraw">
+  <div id="get_ldraw_file" class="section">
+   <div id="svg_ldraw">
+   </div>
+   <span class="choice">
+     <textarea id="ldraw_result" rows="10"></textarea>
+     <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
+   </span>
   </div>
-  <textarea id="ldraw_result" rows="10"></textarea>
-  <button onclick="copyToClipboard();">Copy LDraw file</button>
+
+  <div id="contact">
+    <a href="https://github.com/LasseD/svg2ldraw">svg2ldraw</a> is in the public domain and may be freely distributed.
+    Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
+  </div>
 
   <script>
 var colorTransformation = new LDR.ColorTransformation();
