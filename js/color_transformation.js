@@ -23,7 +23,7 @@ LDR.ColorTransformation = function() {
 
     for(var i = 0; i < 495; i++) {
         const c = LDR.Colors[i];
-        if(!c || c.alpha)
+        if(!c || c.alpha || i == 24)
             continue;
         var [r,g,b] = LDR.int2RGB(c.value);
         const hex = '#' + toHex(r) + toHex(g) + toHex(b);

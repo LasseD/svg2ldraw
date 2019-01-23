@@ -15,7 +15,7 @@
   <script src="js/svg2ldraw.js"></script>
 
   <h3>SVG to Convert</h3>
-  <object id="svg_container" data="sample_files/chevy.svg" type="image/svg+xml"></object> 
+  <object id="svg_container" data="sample_files/corvette.svg" type="image/svg+xml"></object> 
 
   <h3>Simplified SVG</h3>
   <div id="svg_simplified">
@@ -28,10 +28,10 @@
   <pre id="ldraw_result"></pre>
   <script>
 function convert_svg() {
-  var svg = document.getElementById('svg_container').contentDocument.firstChild;
+  var svg = document.getElementById('svg_container').contentDocument.firstElementChild;
 
   // Simplify:
-  var simplifier = new UTIL.PathSimplification(0.001);
+  var simplifier = new UTIL.PathSimplification(0.00001);
   var simplified = simplifier.simplifySvgDom(svg);
 
   var simplifiedSvg = simplifier.svgObjToSvg(simplified);

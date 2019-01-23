@@ -176,7 +176,6 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, 
     const leftX = Math.max(belowIsMoving ? below.left.x : below.p1.x,
                            aboveIsMoving ? above.left.x : above.p1.x);
     if(leftX >= rightX) {
-	console.warn('Trapezoid already in output.');
         return; // Trapezoid already output.
     }
 

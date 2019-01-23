@@ -229,12 +229,16 @@ function readSvgFromUrl(event) {
 
 function setWidth() {
   var w = $('#width')[0].value;
+  if(!w || w < 0)
+    return;
   console.log("Resizing to width: " + w);
   convert_svg(null, w, 0);
 }
 
 function setHeight() {
   var h = $('#height')[0].value;
+  if(!h || h < 0)
+    return;
   console.log("Resizing to height: " + h);
   convert_svg(null, 0, h);
 }

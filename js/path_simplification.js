@@ -24,27 +24,55 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
 UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
     var svgObj = {width: Number(svg.attributes.width.value), 
                   height: Number(svg.attributes.height.value),
-                  bg: 0, // TODO
+                  bg: 0, // TODO: Use svg background color, if any.
                   paths: []};
 
-    var paths = svg.getElementsByTagName('path');
-    for(var i = 0; i < paths.length; i++) {
-        var path = paths[i];
-        var d = path.attributes.d.value;
-        var c = '#000000';
-        if(path.attributes.fill) {
-            c = path.attributes.fill.value;
-        }
-        else if(path.attributes.style) {
-            var style = path.attributes.style.value;
-            var fill = style.match(/(?:fill\:\s*)([\w\#]+)\;/);
-            if(fill)
-                c = fill[1];
-        }
-        this.handlePathD(d, svgObj.paths, c);
-    }
-
+    svg.childNodes.forEach(x => this.handleSvgNode(x, svgObj.paths, null));
     return svgObj;
+}
+
+UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, transformation) {
+    if(node.nodeName == 'g') {
+        this.handleSvgGroup(node, output, transformation);
+    }
+    else if(node.nodeName == 'path') {
+        this.handleSvgPath(node, output, transformation);
+    }
+}
+
+UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, transformation) {
+    var t;
+    if(g.attributes.transform) {
+        var tVal = g.attributes.transform.value;
+        if(!tVal.startsWith('matrix('))
+            throw 'Unsupported transformation type: ' + tVal;
+        var a = tVal.substring(7).split(',').map(x => parseFloat(x));
+        t = function(p) {
+            var x = p.x*a[0] + p.y*a[2] + a[4];
+            var y = p.x*a[1] + p.y*a[3] + a[5];
+            return new UTIL.Point(x, y);
+        }
+    }
+    if(transformation && t) {
+        throw 'Currently unable to handle combined transformations';
+    }
+    g.childNodes.forEach(x => this.handleSvgNode(x, outputPaths, t));
+}
+
+UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, transformation) {
+    var d = path.attributes.d.value;
+    var c = '#000000';
+    if(path.attributes.fill) {
+        c = path.attributes.fill.value;
+    }
+    else if(path.attributes.style) {
+        var style = path.attributes.style.value;
+        var fill = style.match(/(?:fill\:\s*)([\w\#]+)\;?/);
+        if(fill) {
+            c = fill[1];
+        }
+    }
+    this.handlePathD(d, outputPaths, c, transformation);
 }
 
 UTIL.PathSimplification.prototype.decompositionToSvg = function(w, h, decomposition) {
@@ -84,7 +112,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
   - Each path ends with is 'Z', 'z' or 'L x0 y0' where x0, y0 is the position of the first M or m command.
   - A path doesn't self-intersect, not have overlapping positions (except the two path end points).
  */
-UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) {
+UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color, transformation) {
     var tokens = d.match(/[a-zA-Z]+|[0-9\.\-]+/gi);
     var x = 0, y = 0; // Current position.
     var p = []; // Current path.
@@ -105,7 +133,12 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color) 
             if(last.x == x && last.y == y)
                 return;
         }
-        p.push(new UTIL.Point(x,y));
+        if(transformation) {
+            p.push(transformation(new UTIL.Point(x,y)));
+        }
+        else {
+            p.push(new UTIL.Point(x,y));
+        }
     }
 
     for(var i = 0; i < tokens.length; i++) {
