@@ -1,5 +1,8 @@
 'user strict';
 
+/*
+  PathSimplification simplifies SVG files. Simplified files consist only of path elements.
+ */
 UTIL.PathSimplification = function(pointsPerPixel) {
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
 }
@@ -22,57 +25,88 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
 }
 
 UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
-    var svgObj = {width: Number(svg.attributes.width.value), 
-                  height: Number(svg.attributes.height.value),
-                  bg: 0, // TODO: Use svg background color, if any.
-                  paths: []};
+    var a = svg.attributes;
+    if(!a || (a.width === undefined) || (a.height === undefined)) {
+        console.warn('Invalid SVG file: Missing attributes!');
+        return; // Invalid SVG file.
+    }
 
-    svg.childNodes.forEach(x => this.handleSvgNode(x, svgObj.paths, null));
+    var w = Number(a.width.value);
+    var h = Number(a.height.value);
+    var transformation = function(p){return p;};
+    
+    if(a.viewBox) {
+        var vb = a.viewBox.value.split(' ').map(x => parseFloat(x));
+        var dx = vb[2]-vb[0], scaleW = w/dx;
+        var dy = vb[3]-vb[1], scaleH = h/dy;
+
+        transformation = function(p) {
+            var x = p.x*scaleW - vb[0];
+            var y = p.y*scaleH - vb[1];
+            //console.log('ViewBox transformation ' + p.x + ', ' + p.y + ' -> ' + x + ', ' + y);
+            return new UTIL.Point(x, y);
+        }
+    }
+    
+    var svgObj = {width: w, height: h, paths: []};
+    svg.childNodes.forEach(x => this.handleSvgNode(x, svgObj.paths, '#0000', transformation));
     return svgObj;
 }
 
-UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, transformation) {
+UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, transformation) {
+    // Fill color: 'style' takes precedence over 'fill'. Both overwrite inherited value.
+    var a = node.attributes;
+    if(a) {
+        if(node.attributes.fill) {
+            fill = node.attributes.fill.value;
+        }
+        if(node.attributes.style) {
+            var style = node.attributes.style.value;
+            var fillMatches = style.match(/(?:fill\:\s*)([\w\#]+)\;?/);
+            if(fillMatches) {
+                fill = fillMatches[1];
+            }
+        }
+    }
+
     if(node.nodeName == 'g') {
-        this.handleSvgGroup(node, output, transformation);
+        this.handleSvgGroup(node, output, fill, transformation);
     }
     else if(node.nodeName == 'path') {
-        this.handleSvgPath(node, output, transformation);
+        this.handleSvgPath(node, output, fill, transformation);
+    }
+    else if(node.nodeName == 'rect') {
+        this.handleSvgRect(node, output, fill, transformation);
     }
 }
 
-UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, transformation) {
-    var t;
+UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill, transformation) {
+    var t = transformation;
     if(g.attributes.transform) {
         var tVal = g.attributes.transform.value;
         if(!tVal.startsWith('matrix('))
             throw 'Unsupported transformation type: ' + tVal;
         var a = tVal.substring(7).split(',').map(x => parseFloat(x));
         t = function(p) {
+            p = transformation(p);                
             var x = p.x*a[0] + p.y*a[2] + a[4];
             var y = p.x*a[1] + p.y*a[3] + a[5];
             return new UTIL.Point(x, y);
         }
     }
-    if(transformation && t) {
-        throw 'Currently unable to handle combined transformations';
-    }
-    g.childNodes.forEach(x => this.handleSvgNode(x, outputPaths, t));
+    g.childNodes.forEach(x => this.handleSvgNode(x, outputPaths, fill, t));
 }
 
-UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, transformation) {
-    var d = path.attributes.d.value;
-    var c = '#000000';
-    if(path.attributes.fill) {
-        c = path.attributes.fill.value;
-    }
-    else if(path.attributes.style) {
-        var style = path.attributes.style.value;
-        var fill = style.match(/(?:fill\:\s*)([\w\#]+)\;?/);
-        if(fill) {
-            c = fill[1];
-        }
-    }
-    this.handlePathD(d, outputPaths, c, transformation);
+UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, color, transformation) {
+    var a = rect.attributes;
+    var x = a.x ? parseFloat(a.x.value) : 0;
+    var y = a.y ? parseFloat(a.y.value) : 0;
+    var w = parseFloat(a.width.value);
+    var h = parseFloat(a.height.value);
+
+    var points = [new UTIL.Point(x,y), new UTIL.Point(x+w,y),
+                  new UTIL.Point(x+w,y+h), new UTIL.Point(x,y+h)];
+    outputPaths.push({points:points.map(p => transformation(p)), color:color});
 }
 
 UTIL.PathSimplification.prototype.decompositionToSvg = function(w, h, decomposition) {
@@ -112,7 +146,8 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
   - Each path ends with is 'Z', 'z' or 'L x0 y0' where x0, y0 is the position of the first M or m command.
   - A path doesn't self-intersect, not have overlapping positions (except the two path end points).
  */
-UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color, transformation) {
+UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, color, transformation) {
+    var d = path.attributes.d.value;
     var tokens = d.match(/[a-zA-Z]+|[0-9\.\-]+/gi);
     var x = 0, y = 0; // Current position.
     var p = []; // Current path.
@@ -133,12 +168,7 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color, 
             if(last.x == x && last.y == y)
                 return;
         }
-        if(transformation) {
-            p.push(transformation(new UTIL.Point(x,y)));
-        }
-        else {
-            p.push(new UTIL.Point(x,y));
-        }
+        p.push(transformation(new UTIL.Point(x,y)));
     }
 
     for(var i = 0; i < tokens.length; i++) {
@@ -209,11 +239,13 @@ UTIL.PathSimplification.prototype.handlePathD = function(d, outputPaths, color, 
             break;
         case 'c':
             throw "Cubic bezier curve with additive coordinates not yet supported.";
-        default:
-            throw "Unsupported svg path command: " + cmd;
+        default: // Apparently the default behaviour is to assume 'L' when no command is given:
+            x = Number(tokens[i]);
+            y = Number(tokens[++i]);
+            if(x == p[0].x && y == p[0].y)
+                closePath();
+            push();
+            break;
         }
     }
 }
-
-
-

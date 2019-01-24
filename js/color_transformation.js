@@ -9,6 +9,15 @@ LDR.int2RGB = function(i) {
     return [r, g, b];
 }
 
+LDR.short2RGB = function(i) {
+    var b = (i & 0x0f); b = (b << 4) + b;
+    i = i >> 4;
+    var g = (i & 0x0f); g = (g << 4) + g;
+    i = i >> 4;
+    var r = i << 4; r = (r << 4) + r;
+    return [r, g, b];
+}
+
 LDR.ColorTransformation = function() {
     this.map = {};
     this.colors = [];
@@ -52,7 +61,7 @@ LDR.ColorTransformation.prototype.transform = function(htmlColor, onColorMapped)
     else
         key = htmlColor;
     const colorAsInt = parseInt(key, 16);
-    const [r,g,b] = LDR.int2RGB(colorAsInt);
+    const [r,g,b] = key.length == 6 ? LDR.int2RGB(colorAsInt) : LDR.short2RGB(colorAsInt);
     
     const colors = this.colors;
     function diff(i) {

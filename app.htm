@@ -83,7 +83,7 @@
     <input id="svg_file" name="svg_file" type="file" accept="image/svg+xml" onchange="readSvgFromFile(event);" />
    </span>
    <span class="choice">
-    <textarea id="svg_content" rows="20">&lt;!-- Or simply paste the content of the SVG file here --&gt;</textarea>
+    <textarea id="svg_content" onkeyup="readSvgFromText()" rows="20">&lt;!-- Or write the content of the SVG file here --&gt;</textarea>
    </span>
    <div id="svg_container"></div>
   </div>
@@ -184,11 +184,10 @@ function onColorMapped(caller, htmlColor, color) {
 var scale = 1;
 
 function convert_svg(svg, w, h) {
-  // Update text area:
-  if(!svg) {
-    svg = $('#svg_container')[0].innerHTML;
+  if(!svg) { // Fetch from text area:
+    svg = $('#svg_content')[0].value;
   }
-  else {
+  else { // Update text area:
     $('#svg_content').val(svg);
   }
 
@@ -196,6 +195,8 @@ function convert_svg(svg, w, h) {
   var ppp = $('#pointsPerPixel')[0].value;
   var simplifier = new UTIL.PathSimplification(ppp / 100);
   var simplified = simplifier.simplifySvg(svg);
+  if(!simplified)
+    return; // Invalid SVG file.
 
   // Resizing:
   if(w <= 0 && h <= 0) {
@@ -216,7 +217,7 @@ function convert_svg(svg, w, h) {
 
   // Decomposition:
   var simplifiedSvg = simplifier.svgObjToSvg(simplified);
-  var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
+  var decomposition = new UTIL.TrapezoidalDecomposition(simplified, 0);
   if(!decomposition.buildTrapezoids()) {
     console.log('Intersections discovered in SVG file. Layered approach will be used. Number of paths: ' + decomposition.paths.length);
     for(var i = 0; i < decomposition.paths.length; i++) {
@@ -274,6 +275,10 @@ function readSvgFromUrl(event) {
   };
   req.open('GET', url, true);
   req.send();
+}
+
+function readSvgFromText() {
+  convert_svg(null, 0, 0);
 }
 
 function setWidth() {

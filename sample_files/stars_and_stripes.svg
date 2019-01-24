@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1235" height="650" viewBox="0 0 7410 3900">
+
 <rect width="7410" height="3900" fill="#b22234"/>
-<path d="M0,450H7410m0,600H0m0,600H7410m0,600H0m0,600H7410m0,600H0" stroke="#fff" stroke-width="300"/>
+
+<!-- Was a stroke with width 300 - changed to rects-->
+<rect width="7410" height="300" y="300" fill="#FFF"/>
+<rect width="7410" height="300" y="900" fill="#FFF"/>
+<rect width="7410" height="300" y="1500" fill="#FFF"/>
+<rect width="7410" height="300" y="2100" fill="#FFF"/>
+<rect width="7410" height="300" y="2700" fill="#FFF"/>
+<rect width="7410" height="300" y="3300" fill="#FFF"/>
+
 <rect width="2964" height="2100" fill="#3c3b6e"/>
+
 <g fill="#fff">
 <g id="s18">
 <g id="s9">
