@@ -5,6 +5,29 @@
  */
 UTIL.PathSimplification = function(pointsPerPixel) {
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
+    this.groups = {}; // id -> group
+}
+
+UTIL.PathSimplification.prototype.addSimpleGroup = function(id, paths) {
+    var g = new UTIL.Group();
+    g.paths = paths;
+    this.groups[id] = g;
+}
+
+UTIL.Group = function(transform) {
+    this.refs = []; // [] -> {group,transform}
+    this.paths = [];
+    this.transform = transform || function(x){return x;};
+}
+
+UTIL.Group.prototype.output = function(outputPaths, transform) {
+    var self = this;
+    var t = function(p) {
+        //console.log('group transform ' + p.x + ',' + p.y + ' -> ' + self.transform(p).x + ',' + self.transform(p).y);
+        return transform(self.transform(p));
+    };
+    this.paths.forEach(path => outputPaths.push({points:path.points.map(p => t(p)), color:path.color}));
+    this.refs.forEach(ref => ref.group.output(outputPaths, p => t(ref.transform(p))));
 }
 
 /*
@@ -35,21 +58,21 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
     var h = Number(a.height.value);
     var transformation = function(p){return p;};
     
+    var svgObj = {width: w, height: h, paths: []};
+    svg.childNodes.forEach(x => this.handleSvgNode(x, svgObj.paths, '#000000', transformation));
+
     if(a.viewBox) {
         var vb = a.viewBox.value.split(' ').map(x => parseFloat(x));
         var dx = vb[2]-vb[0], scaleW = w/dx;
         var dy = vb[3]-vb[1], scaleH = h/dy;
 
-        transformation = function(p) {
-            var x = p.x*scaleW - vb[0];
-            var y = p.y*scaleH - vb[1];
-            //console.log('ViewBox transformation ' + p.x + ', ' + p.y + ' -> ' + x + ', ' + y);
-            return new UTIL.Point(x, y);
+        var applyViewBox = function(p) {
+            p.x = p.x*scaleW - vb[0];
+            p.y = p.y*scaleH - vb[1];
         }
+        svgObj.paths.forEach(path => path.points.forEach(applyViewBox));
     }
-    
-    var svgObj = {width: w, height: h, paths: []};
-    svg.childNodes.forEach(x => this.handleSvgNode(x, svgObj.paths, '#0000', transformation));
+
     return svgObj;
 }
 
@@ -81,20 +104,58 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
 }
 
 UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill, transformation) {
-    var t = transformation;
-    if(g.attributes.transform) {
-        var tVal = g.attributes.transform.value;
+    var a = g.attributes;
+    var groupTransformation = transformation;
+    if(a.transform) {
+        var tVal = a.transform.value;
         if(!tVal.startsWith('matrix('))
             throw 'Unsupported transformation type: ' + tVal;
         var a = tVal.substring(7).split(',').map(x => parseFloat(x));
-        t = function(p) {
-            p = transformation(p);                
+        groupTransformation = function(p) {
             var x = p.x*a[0] + p.y*a[2] + a[4];
             var y = p.x*a[1] + p.y*a[3] + a[5];
-            return new UTIL.Point(x, y);
+            return transformation(new UTIL.Point(x, y));
         }
     }
-    g.childNodes.forEach(x => this.handleSvgNode(x, outputPaths, fill, t));
+    var group = new UTIL.Group(groupTransformation);
+    var overloadedOutputPaths = {};
+    overloadedOutputPaths.push = function(outputPath) {
+        outputPaths.push(outputPath);
+        group.paths.push(outputPath);
+    }
+    for(var i = 0; i < g.childNodes.length; i++) {
+        var child = g.childNodes[i];
+        if(child.nodeName == 'use') {
+            var childA = child.attributes;
+            var ref = childA['xlink:href'];
+            if(!ref) {
+                console.warn("Missing xlink:href attribute in 'use' node. Skipping.");
+                continue;
+            }
+            ref = ref.value.substring(1);
+            if(!this.groups.hasOwnProperty(ref)) {
+                console.warn("Unknown ID: '" + ref + "'. Skipping.");
+                continue;
+            }
+            ref = this.groups[ref];
+
+            // Transform:
+            const x = childA.x ? parseFloat(childA.x.value) : 0;
+            const y = childA.y ? parseFloat(childA.y.value) : 0;
+            var childT = function(p) {
+                return groupTransformation(new UTIL.Point(p.x+x, p.y+y));
+            };
+
+            group.refs.push({group:ref, transform:childT});
+            ref.output(outputPaths, p => childT(p)); // ERROR: viewBox transform is applied twice
+        }
+        else {
+            this.handleSvgNode(child, overloadedOutputPaths, fill, groupTransformation);
+        }
+    }
+    if(a.id) {
+        this.groups[a.id.value] = group;
+    }
 }
 
 UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, color, transformation) {
@@ -105,8 +166,10 @@ UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, co
     var h = parseFloat(a.height.value);
 
     var points = [new UTIL.Point(x,y), new UTIL.Point(x+w,y),
-                  new UTIL.Point(x+w,y+h), new UTIL.Point(x,y+h)];
-    outputPaths.push({points:points.map(p => transformation(p)), color:color});
+                  new UTIL.Point(x+w,y+h), new UTIL.Point(x,y+h)].map(transformation);
+    outputPaths.push({points:points, color:color});
+    if(a.id)
+        this.addSimpleGroup(a.id.value, [points]);
 }
 
 UTIL.PathSimplification.prototype.decompositionToSvg = function(w, h, decomposition) {
@@ -147,14 +210,21 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
   - A path doesn't self-intersect, not have overlapping positions (except the two path end points).
  */
 UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, color, transformation) {
-    var d = path.attributes.d.value;
+    var a = path.attributes;
+    var d = a.d.value;
     var tokens = d.match(/[a-zA-Z]+|[0-9\.\-]+/gi);
     var x = 0, y = 0; // Current position.
     var p = []; // Current path.
 
+    var group;
+    if(a.id)
+        group = new UTIL.Group();
+
     function closePath() {
         if(p && p.length >= 3) {
-            outputPaths.push({points:p, color:color});
+            var path = {points:p, color:color};
+            outputPaths.push(path);
+            group.paths.push(path);
         }
         p = [];
     }
@@ -247,5 +317,9 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             push();
             break;
         }
+    }
+
+    if(group) {
+        this.groups[a.id.value] = group;
     }
 }

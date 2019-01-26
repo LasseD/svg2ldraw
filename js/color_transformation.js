@@ -14,7 +14,7 @@ LDR.short2RGB = function(i) {
     i = i >> 4;
     var g = (i & 0x0f); g = (g << 4) + g;
     i = i >> 4;
-    var r = i << 4; r = (r << 4) + r;
+    var r = (i & 0x0f); r = (r << 4) + r;
     return [r, g, b];
 }
 

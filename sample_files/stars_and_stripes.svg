@@ -4,27 +4,28 @@
 <rect width="7410" height="3900" fill="#b22234"/>
 
 <!-- Was a stroke with width 300 - changed to rects-->
-<rect width="7410" height="300" y="300" fill="#FFF"/>
-<rect width="7410" height="300" y="900" fill="#FFF"/>
-<rect width="7410" height="300" y="1500" fill="#FFF"/>
+<rect width="4446" height="300" x="2964" y="300" fill="#FFF"/>
+<rect width="4446" height="300" x="2964" y="900" fill="#FFF"/>
+<rect width="4446" height="300" x="2964" y="1500" fill="#FFF"/>
 <rect width="7410" height="300" y="2100" fill="#FFF"/>
 <rect width="7410" height="300" y="2700" fill="#FFF"/>
 <rect width="7410" height="300" y="3300" fill="#FFF"/>
 
-<rect width="2964" height="2100" fill="#3c3b6e"/>
+<rect x="1e-6" y="1e-6" width="2963.999" height="2099.999" fill="#3c3b6e"/>
 
-<g fill="#fff">
+<g fill="#FFF">
 <g id="s18">
 <g id="s9">
 <g id="s5">
 <g id="s4">
-<path id="s" d="
+<path id="s" d="M 247 90 L 274 173 L 361,173 L 291 224 L 318,307 L 247 256 L 176 307 L 203 224 L 133,173 L 220 173 Z"/>
+<!--<path id="s" d="
 M247,90 
-317.534230,307.082039 
-132.873218,172.917961
-H 361.126782
-L 176.465770,307.082039
-z"/>
+318,307
+133,173
+H 361
+L 176 307
+z"/>-->
 <use xlink:href="#s" y="420"/>
 <use xlink:href="#s" y="840"/>
 <use xlink:href="#s" y="1260"/>

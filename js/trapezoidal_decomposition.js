@@ -45,6 +45,7 @@ UTIL.TrapezoidalDecomposition.prototype.sortEvents = function() {
   Perform sweep line algorithm.
  */
 UTIL.TrapezoidalDecomposition.prototype.buildTrapezoids = function() {
+    var ok = true;
     // Ensure all paths turn clockwise:
     this.orderPathsClockwise();
 
@@ -59,7 +60,10 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoids = function() {
     this.sortEvents();
 
     if(this.detectCrossingLines()) {
-        return false; // Crossing lines - Topology can't be created. 
+        ok = false;
+        if(this.paths.length > 1)
+            return ok; // Crossing lines from multiple paths - Topology can't be created. 
+        // TODO: Update lines to allow continuation
     }
 
     // Compute topology in order to be able to set colors of trapezoids:
@@ -77,11 +81,12 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoids = function() {
         else
             this.handleStartEvent(e);
     }
-    return true;
+    return ok;
 }
 
 UTIL.TrapezoidalDecomposition.prototype.detectCrossingLines = function() {
     // Perform sweep line traversal:
+    var cnt = 0;
     for(var j = 0; j < this.events.length; j++) {
         const e = this.events[j];
         if(e.end) { // Find and remove line in sweep line:
@@ -98,13 +103,15 @@ UTIL.TrapezoidalDecomposition.prototype.detectCrossingLines = function() {
             for(var i = 0; i < this.sweepLine.length; i++) {
                 const line = this.sweepLine[i];
                 if(e.line.crosses(line)) {
-                    return true;
+                    var c = e.line.getIntersection(line);
+                    console.warn("Lines cross at " + c.x + ", " + c.y);
+                    cnt++;
                 }
             }
             this.sweepLine.push(e.line);
         }
     }
-    return false;
+    return cnt > 0;
 }
 
 UTIL.TrapezoidalDecomposition.prototype.computeTopology = function() {
@@ -171,10 +178,10 @@ UTIL.TrapezoidalDecomposition.prototype.findLinesAboveAndBelow = function(e, aBi
 
 UTIL.IDX = 0;
 UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, rightX) {
-    const aboveIsMoving = !above.interiorIsAbove;
-    const belowIsMoving = below.interiorIsAbove;
-    const leftX = Math.max(belowIsMoving ? below.left.x : below.p1.x,
-                           aboveIsMoving ? above.left.x : above.p1.x);
+    const aboveInsideIsMoving = !above.interiorIsAbove;
+    const belowInsideIsMoving = below.interiorIsAbove;
+    const leftX = Math.max(belowInsideIsMoving ? below.leftInside.x : below.leftOutside.x,
+                           aboveInsideIsMoving ? above.leftInside.x : above.leftOutside.x);
     if(leftX >= rightX) {
         return; // Trapezoid already output.
     }
@@ -195,24 +202,29 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, 
         return;
     }
 
-    var color = belowIsMoving ? below.path.color : below.path.outerPath.color;
-    //if(color){var colors = ['red', 'green', 'blue', 'yellow', 'orange', 'lime', 'cyan', 'purple', 'pink', 'black']; var color = colors[(UTIL.IDX++)%colors.length];}
+    var color = belowInsideIsMoving ? below.path.color : below.path.outerPath.color;
+    //if(color){var colors = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '#000', '#FFF']; var color = colors[(UTIL.IDX++)%colors.length];}
     if(color) {
         this.trapezoids.push({points:points, color:color, z:this.z});
         /*console.log(color + " x=" + leftX + "->" + rightX + 
-                    ", below y=" + p1.y + "->" + p4.y + (below.interiorIsAbove?'^':'v') + (belowIsMoving ? 'below is moving' : below.path.outerPath.color) +
+                    ", below y=" + p1.y + "->" + p4.y + (below.interiorIsAbove?'^':'v') + (belowInsideIsMoving ? 'below is moving' : below.path.outerPath.color) +
                     ", above y=" + p2.y + "->" + p3.y + (above.interiorIsAbove?'^':'v'));
         console.dir(below);
         console.dir(above);//*/
     }
     
-    if(belowIsMoving)
-        below.left = p4;
-    if(aboveIsMoving)
-        above.left = p3;
+    if(belowInsideIsMoving)
+        below.leftInside = p4;
+    else
+        below.leftOutside = p4;
+    if(aboveInsideIsMoving)
+        above.leftInside = p3;
+    else
+        above.leftOutside = p3;
 }
 
 UTIL.TrapezoidalDecomposition.prototype.handleStartEvent = function(e) {
+    //console.log('START ' + e.p.x + ', ' + e.p.y);
     // Output trapezoids to the left of event:
     if(this.sweepLine.length > 0 && !(this.x == e.p.x && this.y == e.p.y)) {
         const [above, below] = this.findLinesAboveAndBelow(e, true);
@@ -227,6 +239,7 @@ UTIL.TrapezoidalDecomposition.prototype.handleStartEvent = function(e) {
 }
 
 UTIL.TrapezoidalDecomposition.prototype.handleEndEvent = function(e) {
+    //console.log('END ' + e.p.x + ', ' + e.p.y);
     // Find and remove line in sweep line:
     var line;
     for(var i = 0; true; i++) {
@@ -308,7 +321,7 @@ UTIL.TrapezoidalDecomposition.prototype.createEvents = function() {
             const l1 = new UTIL.Line(p1, p2), l2 = new UTIL.Line(p1, p2);
             l1.path = l2.path = path;
             l1.interiorIsAbove = l2.interiorIsAbove = interiorIsAbove;
-            l1.left = l2.left = p1;
+            l1.leftInside = l1.leftOutside = l2.leftInside = l2.leftOutside = p1;
 
             const e1 = {end:0, path:path, p:p1, line:l1};
             const e2 = {end:1, path:path, p:p2, line:l2};
