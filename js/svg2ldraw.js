@@ -9,17 +9,24 @@ SVG2LDRAW.Svg = function() {
     this.precision = 4; // LDraw output precision
 }
 
-SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scale) {
-    const xSub = decomposition.width*0.5*scale;
-    const yAdd = decomposition.height*0.5*scale;
+SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
+    const xSub = decomposition.width*0.5*scaleW;
+    const yAdd = decomposition.height*0.5*scaleH;
 
     const precision = this.precision;
-    function convert(x) {
-        x = x*scale;
+    function convertX(x) {
+        x = x*scaleW;
         if(x == Math.floor(x))
             return x;
         return x.toFixed(precision);
     }
+    function convertY(y) {
+        y = y*scaleH;
+        if(y == Math.floor(y))
+            return y;
+        return y.toFixed(precision);
+    }
+    var reverse = (scaleW < 0) != (scaleH < 0);
 
     var ret = '0 Name: ' + (decomposition.name ? decomposition.name : 'INSERT_NAME_HERE');
     ret += `
@@ -33,7 +40,8 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scale) {
         const pts = path.points;
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
-            ret += " " + convert(pts[j].x-xSub) + " " + path.z + " " + convert(-pts[j].y+yAdd);
+            var k = reverse ? pts.length-1-j : j;
+            ret += " " + convertX(pts[k].x-xSub) + " " + path.z + " " + convertY(-pts[k].y+yAdd);
         }
         ret += '\n';
     }

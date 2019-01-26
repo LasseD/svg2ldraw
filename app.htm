@@ -107,7 +107,7 @@
    </span>
    <span class="choice">
     <label for="pointsPerPixel">Points per 100 pixels</label>
-    <input id="pointsPerPixel" name="pointsPerPixel" type="text" value="3" onchange="setWidth();" />
+    <input id="pointsPerPixel" name="pointsPerPixel" type="text" value="3" onchange="readSvgFromText();" />
    </span>
   </div>
 
@@ -181,7 +181,7 @@ function onColorMapped(caller, htmlColor, color) {
   }
 }
 
-var scale = 1;
+var scaleW = 1, scaleH = 1;
 
 function convert_svg(svg, w, h) {
   if(!svg) { // Fetch from text area:
@@ -199,20 +199,22 @@ function convert_svg(svg, w, h) {
     return; // Invalid SVG file.
 
   // Resizing:
-  if(w <= 0 && h <= 0) {
+  if(w == 0 && h == 0) {
     $('#width').val(simplified.width);
     $('#height').val(simplified.height);
   }
-  else if(w > 0 && h > 0) {
+  else if(w != 0 && h != 0) {
     // Both updating! - reuse old scale.
   }
-  else if(w > 0) {
-    scale = w / simplified.width;
-    $('#height').val(parseInt(scale * simplified.height));
+  else if(w != 0) {
+    scaleW = w / simplified.width;
+    scaleH = Math.abs(scaleW);
+    $('#height').val(parseInt(scaleH * simplified.height));
   }
   else {
-    scale = h / simplified.height;
-    $('#width').val(parseInt(scale * simplified.width));
+    scaleH = h / simplified.height;
+    scaleW = Math.abs(scaleH);
+    $('#width').val(parseInt(scaleW * simplified.width));
   }
 
   // Decomposition:
@@ -235,7 +237,7 @@ function convert_svg(svg, w, h) {
   colorTransformation.transformPaths(decomposition.trapezoids, onColorMapped);
 
   // LDraw:
-  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, scale);
+  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, scaleW, scaleH);
   var lDrawSvg = simplifier.decompositionToSvg(simplified.width, simplified.height, decomposition);
 
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
@@ -282,17 +284,19 @@ function readSvgFromText() {
 }
 
 function setWidth() {
-  var w = $('#width')[0].value;
-  if(!w || w < 0)
+  var w = $('#width')[0];
+  if(!w)
     return;
+  w = parseFloat(w.value);
   console.log("Resizing to width: " + w);
   convert_svg(null, w, 0);
 }
 
 function setHeight() {
-  var h = $('#height')[0].value;
-  if(!h || h < 0)
+  var h = $('#height')[0];
+  if(!h)
     return;
+  h = parseFloat(h.value);
   console.log("Resizing to height: " + h);
   convert_svg(null, 0, h);
 }

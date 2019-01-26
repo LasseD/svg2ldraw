@@ -4,6 +4,7 @@
   PathSimplification simplifies SVG files. Simplified files consist only of path elements.
  */
 UTIL.PathSimplification = function(pointsPerPixel) {
+    this.pointsPerPixel = pointsPerPixel;
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
     this.groups = {}; // id -> group
 }
@@ -101,6 +102,9 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
     else if(node.nodeName == 'rect') {
         this.handleSvgRect(node, output, fill, transformation);
     }
+    else if(node.nodeName == 'circle') {
+        this.handleSvgCircle(node, output, fill, transformation);
+    }
 }
 
 UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill, transformation) {
@@ -167,6 +171,26 @@ UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, co
 
     var points = [new UTIL.Point(x,y), new UTIL.Point(x+w,y),
                   new UTIL.Point(x+w,y+h), new UTIL.Point(x,y+h)].map(transformation);
+    outputPaths.push({points:points, color:color});
+    if(a.id)
+        this.addSimpleGroup(a.id.value, [points]);
+}
+
+UTIL.PathSimplification.prototype.handleSvgCircle = function(rect, outputPaths, color, transformation) {
+    var a = rect.attributes;
+    var cx = a.cx ? parseFloat(a.cx.value) : 0;
+    var cy = a.cy ? parseFloat(a.cy.value) : 0;
+    var r = parseFloat(a.r.value);
+
+    var points = [];
+    var pointsPerCircle = Math.floor(this.pointsPerPixel * Math.PI * 2 * r);
+    //console.log(pointsPerCircle);
+    for(var i = 0; i < pointsPerCircle; i++) {
+        var angle = Math.PI*2*i/pointsPerCircle;
+        points.push(new UTIL.Point(cx+Math.cos(angle)*r, cy+Math.sin(angle)*r));
+    }
+
+    points = points.map(transformation);
     outputPaths.push({points:points, color:color});
     if(a.id)
         this.addSimpleGroup(a.id.value, [points]);
