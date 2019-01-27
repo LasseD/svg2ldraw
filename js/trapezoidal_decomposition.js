@@ -91,6 +91,8 @@ UTIL.TrapezoidalDecomposition.prototype.detectCrossingLines = function() {
         const e = this.events[j];
         if(e.end) { // Find and remove line in sweep line:
             for(var i = 0; true; i++) {
+		if(i == this.sweepLine.length)
+		    return true;
                 const line = this.sweepLine[i];
                 if(line.p1.x == e.line.p1.x && line.p1.y == e.line.p1.y && 
                    line.p2.x == e.line.p2.x && line.p2.y == e.line.p2.y) {

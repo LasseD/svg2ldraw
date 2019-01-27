@@ -55,8 +55,8 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
         return; // Invalid SVG file.
     }
 
-    var w = Number(a.width.value);
-    var h = Number(a.height.value);
+    var w = parseFloat(a.width.value);
+    var h = parseFloat(a.height.value);
     var transformation = function(p){return p;};
     
     var svgObj = {width: w, height: h, paths: []};
@@ -89,6 +89,10 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
             var fillMatches = style.match(/(?:fill\:\s*)([\w\#]+)\;?/);
             if(fillMatches) {
                 fill = fillMatches[1];
+		if(fill == 'none') {
+		    console.warn('fill:none; is not yet supported');
+		    return;
+		}
             }
         }
     }
@@ -266,12 +270,21 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         p.push(transformation(new UTIL.Point(x,y)));
     }
 
+    var x0, y0;
+    var cmd = 'M';
     for(var i = 0; i < tokens.length; i++) {
-        var cmd = tokens[i];
+	x0 = x, y0 = y;
+	if(tokens[i].match(/[a-zA-Z]/i)) {
+            cmd = tokens[i]; // Update cmd.
+	}
+	else {
+	    i--;
+	}
         switch(cmd) {
         case 'M':
             x = y = 0;
         case 'm':
+	    cmd = (cmd == 'M' ? 'L' : 'l'); // Line-to commands are implicit after move
             closePath();
             x = x+Number(tokens[++i]);
             y = y+Number(tokens[++i]);
@@ -311,13 +324,15 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             push();
             break;
         case 'C':
-            var x1 = Number(tokens[++i]);
-            var y1 = Number(tokens[++i]);
-            var x2 = Number(tokens[++i]);
-            var y2 = Number(tokens[++i]);
-            var x3 = Number(tokens[++i]);
-            var y3 = Number(tokens[++i]);
-            var p0 = new UTIL.Point(x, y);
+	    x = 0, y = 0;
+        case 'c':
+            var x1 = x+Number(tokens[++i]);
+            var y1 = y+Number(tokens[++i]);
+            var x2 = x+Number(tokens[++i]);
+            var y2 = y+Number(tokens[++i]);
+            var x3 = x+Number(tokens[++i]);
+            var y3 = y+Number(tokens[++i]);
+            var p0 = new UTIL.Point(x0, y0);
             var p1 = new UTIL.Point(x1, y1);
             var p2 = new UTIL.Point(x2, y2);
             var p3 = new UTIL.Point(x3, y3);
@@ -332,15 +347,8 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             if(x == p[0].x && y == p[0].y)
                 closePath();
             break;
-        case 'c':
-            throw "Cubic bezier curve with additive coordinates not yet supported.";
-        default: // Apparently the default behaviour is to assume 'L' when no command is given:
-            x = Number(tokens[i]);
-            y = Number(tokens[++i]);
-            if(x == p[0].x && y == p[0].y)
-                closePath();
-            push();
-            break;
+        default:
+	    throw 'Unsupported command ' + cmd;
         }
     }
 
