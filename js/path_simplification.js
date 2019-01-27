@@ -248,7 +248,8 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         if(p && p.length >= 3) {
             var path = {points:p, color:color};
             outputPaths.push(path);
-            group.paths.push(path);
+            if(group)
+                group.paths.push(path);
         }
         p = [];
     }
