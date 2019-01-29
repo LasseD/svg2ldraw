@@ -370,8 +370,13 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         case 'S':
 	    x = y = 0;
         case 's':
-            x1 = x3 + (x3-x2);
-            y1 = y3 + (y3-y2);
+            if(prevCmd == 's' || prevCmd == 'S' || prevCmd == 'C' || prevCmd == 'c') {
+                x1 = x3 + (x3-x2);
+                y1 = y3 + (y3-y2);
+            }
+            else {
+                x1 = x0; y1 = y0;
+            }
             x2 = x+Number(tokens[++i]);
             y2 = y+Number(tokens[++i]);
             x3 = x+Number(tokens[++i]);
