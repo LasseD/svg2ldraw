@@ -23,8 +23,6 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
             }));
     const w = maxX-minX, h = maxY-minY;
     const midX = (maxX+minX)*0.5, midY = (maxY+minY)*0.5;
-    console.log("minX=" + minX + ", maxX=" + maxX + ", minY=" + minY + ", maxY=" + maxY);
-    console.dir(decomposition.trapezoids);
 
     const precision = this.precision;
     function convertX(x) {
