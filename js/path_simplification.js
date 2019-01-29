@@ -3,8 +3,11 @@
 /*
   PathSimplification simplifies SVG files. Simplified files consist only of path elements.
  */
-UTIL.PathSimplification = function(pointsPerPixel) {
+UTIL.PathSimplification = function(pointsPerPixel, onWarning, onError) {
     this.pointsPerPixel = pointsPerPixel;
+    this.onWarning = onWarning;
+    this.onError = onError;
+
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
     this.groups = {}; // id -> group
 }
@@ -51,7 +54,7 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
 UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
     var a = svg.attributes;
     if(!a || (a.width === undefined) || (a.height === undefined)) {
-        console.warn('Invalid SVG file: Missing attributes!');
+        onError('Invalid SVG file: Missing attributes!');
         return; // Invalid SVG file.
     }
 
@@ -60,7 +63,10 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
     var transformation = function(p){return p;};
     
     var svgObj = {width: w, height: h, paths: []};
-    svg.childNodes.forEach(x => this.handleSvgNode(x, svgObj.paths, '#000000', transformation));
+    for(var i = 0; i < svg.children.length; i++) {
+        var child = svg.children[i];
+        this.handleSvgNode(child, svgObj.paths, '#000000', transformation);
+    }
 
     if(a.viewBox) {
         var vb = a.viewBox.value.split(' ').map(x => parseFloat(x));
@@ -89,11 +95,11 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
             var fillMatches = style.match(/(?:fill\:\s*)([\w\#]+)\;?/);
             if(fillMatches) {
                 fill = fillMatches[1];
-		if(fill == 'none') {
-		    console.warn('fill:none; is not yet supported');
-		    return;
-		}
             }
+        }
+        if(fill == 'none') {
+            this.onWarning('fill_none', 'fill:none; is not yet supported. SVG elements with this property will be ignored.');
+            return;
         }
     }
 
@@ -109,6 +115,9 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
     else if(node.nodeName == 'circle') {
         this.handleSvgCircle(node, output, fill, transformation);
     }
+    else {
+        this.onWarning(node.nodeName, 'Unsupported SVG element type: ' + node.nodeName + '. This element will be ignored.');
+    }
 }
 
 UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill, transformation) {
@@ -116,8 +125,10 @@ UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill
     var groupTransformation = transformation;
     if(a.transform) {
         var tVal = a.transform.value;
-        if(!tVal.startsWith('matrix('))
-            throw 'Unsupported transformation type: ' + tVal;
+        if(!tVal.startsWith('matrix(')) {
+            this.onWarning(tVal, 'Unsupported transformation "' + tVal + '". SVG groups with this type of transformation will be ignored.');
+            return;
+        }
         var a = tVal.substring(7).split(',').map(x => parseFloat(x));
         groupTransformation = function(p) {
             var x = p.x*a[0] + p.y*a[2] + a[4];
@@ -131,18 +142,18 @@ UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill
         outputPaths.push(outputPath);
         group.paths.push(outputPath);
     }
-    for(var i = 0; i < g.childNodes.length; i++) {
-        var child = g.childNodes[i];
+    for(var i = 0; i < g.children.length; i++) {
+        var child = g.children[i];
         if(child.nodeName == 'use') {
             var childA = child.attributes;
             var ref = childA['xlink:href'];
             if(!ref) {
-                console.warn("Missing xlink:href attribute in 'use' node. Skipping.");
+                this.onWarning('xlink:href', 'Missing xlink:href attribute in "use" element. Output for this will be skipped.');
                 continue;
             }
             ref = ref.value.substring(1);
             if(!this.groups.hasOwnProperty(ref)) {
-                console.warn("Unknown ID: '" + ref + "'. Skipping.");
+                this.onWarning(ref, 'Unknown ID: "' + ref + '". Skipping "use" element.');
                 continue;
             }
             ref = this.groups[ref];
@@ -348,7 +359,8 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
                 closePath();
             break;
         default:
-	    throw 'Unsupported command ' + cmd;
+            this.onWarning(cmd, 'Unsupported path command "' + cmd + '". The path will be skipped.');
+            return;
         }
     }
 

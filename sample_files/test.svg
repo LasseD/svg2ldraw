@@ -7,4 +7,6 @@
  <path d="M 200 0 h 100 l -20 50 l 20 50 h -100 Z" fill="#FF0000" />
  <path d="M 210 50 L 260 20 L 280 90 L 210 50" fill="#0000FF" />
  <path d="M 225 49 L 242 41 L 258 62 Z" fill="#FFFF00" />
+ <path d="M 225 49 L 242 41 L 258 62 Z" fill="#FFFF00" />
+ <path d="M 225 49 L 242 41 L 258 62 Z" fill="none" />
 </svg>

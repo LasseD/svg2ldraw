@@ -55,6 +55,18 @@
         margin: 2em;
         text-align: center;
       }
+      .error, .warning {
+        display: block;
+        margin: 1em;
+        padding: 0.5em;
+        font-weigght: bold;
+      }
+      .error {
+        border: 0.2em solid red;
+      }
+      .warning {
+        border: 0.2em solid orange;
+      }
     </style>
  </head>
  <body>
@@ -85,6 +97,12 @@
    <span class="choice">
     <textarea id="svg_content" onkeyup="readSvgFromText()" rows="20">&lt;!-- Or write the content of the SVG file here --&gt;</textarea>
    </span>
+
+   <div id="warnings">
+   </div>
+   <div id="errors">
+   </div>
+
    <div id="svg_container"></div>
   </div>
 
@@ -147,7 +165,7 @@ function setColor(htmlColor, event) {
   var c = colorTransformation.colors[event.value];
   console.log('Setting color ' + htmlColor + ' -> ' + c.id);
   colorTransformation.map[htmlColor] = c;
-  convert_svg(null, 1, 1);
+  convert_svg(null);
 }
 
 function makeColorCube(hex) {
@@ -181,9 +199,40 @@ function onColorMapped(caller, htmlColor, color) {
   }
 }
 
-var scaleW = 1, scaleH = 1;
+var seenWarningTypes = {};
 
-function convert_svg(svg, w, h) {
+function resetWarningsAndErrors() {
+  $('#warnings').empty();
+  $('#errors').empty();
+  seenWarningTypes = {};
+}
+
+function onWarning(type, message) {
+  console.warn(message);
+  if(seenWarningTypes.hasOwnProperty(type)) {
+    return; // Already seen.
+  }
+  var span = document.createElement('span');
+  span.setAttribute('class', 'warning');
+  span.innerHTML = message;
+  $('#warnings').append(span);
+  
+  seenWarningTypes[type] = true;
+}
+
+function onError(message) {
+  var span = document.createElement('span');
+  span.setAttribute('class', 'error');
+  span.innerHTML = message;
+  $('#errors').empty().append(span);
+}
+
+var scaleW = 1, scaleH = 1;
+var widthSet = false, heightSet = false;
+
+function convert_svg(svg) {
+  resetWarningsAndErrors();
+
   if(!svg) { // Fetch from text area:
     svg = $('#svg_content')[0].value;
   }
@@ -193,20 +242,37 @@ function convert_svg(svg, w, h) {
 
   // Simplify:
   var ppp = $('#pointsPerPixel')[0].value;
-  var simplifier = new UTIL.PathSimplification(ppp / 100);
+  var simplifier = new UTIL.PathSimplification(ppp / 100, onWarning, onError);
   var simplified = simplifier.simplifySvg(svg);
-  if(!simplified)
+  if(!simplified) {
+    onError('SVG file failed to parse. No LDraw file is generated.');
     return; // Invalid SVG file.
+  }
+
+  // Dimensions:
+  var w = $('#width')[0];
+  if(!w)
+    w = simplified.width;
+  else
+    w = parseFloat(w.value);
+  var h = $('#height')[0];
+  if(!h)
+    h = simplified.height;
+  else
+    h = parseFloat(h.value);
 
   // Resizing:
-  if(w == 0 && h == 0) {
+  if(!widthSet && !heightSet) {
     $('#width').val(simplified.width);
     $('#height').val(simplified.height);
+    scaleW = scaleH = 1;
   }
-  else if(w != 0 && h != 0) {
-    // Both updating! - reuse old scale.
+  else if(widthSet && heightSet) {
+    // Both updated manually:
+    scaleW = w / simplified.width;
+    scaleH = h / simplified.height;
   }
-  else if(w != 0) {
+  else if(widthSet) {
     scaleW = w / simplified.width;
     scaleH = Math.abs(scaleW);
     $('#height').val(parseInt(scaleH * simplified.height));
@@ -221,12 +287,12 @@ function convert_svg(svg, w, h) {
   var simplifiedSvg = simplifier.svgObjToSvg(simplified);
   var decomposition = new UTIL.TrapezoidalDecomposition(simplified, 0);
   if(!decomposition.buildTrapezoids()) {
-    console.log('Intersections discovered in SVG file. Layered approach will be used. Number of paths: ' + decomposition.paths.length);
+    onWarning('cross', 'Crossing lines discovered in SVG file. Layered approach will be used. This issue can some times be avoided by increasing "Points per 100 pixels". Number of paths: ' + decomposition.paths.length);
     for(var i = 0; i < decomposition.paths.length; i++) {
       var s = {paths: [decomposition.paths[i]]};
       var d = new UTIL.TrapezoidalDecomposition(s, -i*0.01);
       if(!d.buildTrapezoids()) {
-        console.warn('Self-intersections found in path ' + i);
+        onWarning('cross' + i, 'Self-intersections found in path ' + i + '. It will not be present in the LDraw file.');
         continue;
       }
       decomposition.trapezoids.push(...d.trapezoids);
@@ -252,7 +318,7 @@ function readSvgFromFile(event) {
     $('width').val('');
     $('height').val('');
     resetColors();
-    convert_svg(svgTxt, 0, 0);
+    convert_svg(svgTxt);
   };
   reader.readAsText(event.target.files[0]);
 }
@@ -273,32 +339,30 @@ function readSvgFromUrl(event) {
     $('width').val('');
     $('height').val('');
     resetColors();
-    convert_svg(svgTxt, 0, 0);
+    convert_svg(svgTxt);
   };
   req.open('GET', url, true);
   req.send();
 }
 
 function readSvgFromText() {
-  convert_svg(null, 0, 0);
+  convert_svg(null);
 }
 
 function setWidth() {
   var w = $('#width')[0];
   if(!w)
     return;
-  w = parseFloat(w.value);
-  console.log("Resizing to width: " + w);
-  convert_svg(null, w, 0);
+  widthSet = true;
+  convert_svg(null);
 }
 
 function setHeight() {
   var h = $('#height')[0];
   if(!h)
     return;
-  h = parseFloat(h.value);
-  console.log("Resizing to height: " + h);
-  convert_svg(null, 0, h);
+  heightSet = true;
+  convert_svg(null);
 }
 
 function copyToClipboard() {
