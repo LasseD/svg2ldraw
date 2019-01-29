@@ -1,3 +1,5 @@
+'use strict';
+
 var SVG2LDRAW = {};
 
 /*
@@ -10,19 +12,30 @@ SVG2LDRAW.Svg = function() {
 }
 
 SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
-    const xSub = decomposition.width*0.5*scaleW;
-    const yAdd = decomposition.height*0.5*scaleH;
+    var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE;
+    var maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+
+    decomposition.trapezoids.forEach(path => path.points.forEach(function(p) {
+                minX = Math.min(minX, p.x);
+                minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x);
+                maxY = Math.max(maxY, p.y);
+            }));
+    const w = maxX-minX, h = maxY-minY;
+    const midX = (maxX+minX)*0.5, midY = (maxY+minY)*0.5;
+    console.log("minX=" + minX + ", maxX=" + maxX + ", minY=" + minY + ", maxY=" + maxY);
+    console.dir(decomposition.trapezoids);
 
     const precision = this.precision;
     function convertX(x) {
-        x = x*scaleW;
-        if(x == Math.floor(x))
+        x = (midX-x)*scaleW;
+        if(x == parseInt(x))
             return x;
         return x.toFixed(precision);
     }
     function convertY(y) {
-        y = y*scaleH;
-        if(y == Math.floor(y))
+        y = -(midY-y)*scaleH;
+        if(y == parseInt(y))
             return y;
         return y.toFixed(precision);
     }
@@ -41,7 +54,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
             var k = reverse ? pts.length-1-j : j;
-            ret += " " + convertX(pts[k].x-xSub) + " " + path.z + " " + convertY(-pts[k].y+yAdd);
+            ret += " " + convertX(pts[k].x) + " " + path.z + " " + convertY(pts[k].y);
         }
         ret += '\n';
     }

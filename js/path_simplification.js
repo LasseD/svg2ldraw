@@ -70,12 +70,12 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
 
     if(a.viewBox) {
         var vb = a.viewBox.value.split(' ').map(x => parseFloat(x));
-        var dx = vb[2]-vb[0], scaleW = w/dx;
-        var dy = vb[3]-vb[1], scaleH = h/dy;
+        var dx = scaleW = w / vb[2];
+        var dy = scaleH = h / vb[3];
 
         var applyViewBox = function(p) {
-            p.x = p.x*scaleW - vb[0];
-            p.y = p.y*scaleH - vb[1];
+            p.x = (p.x-vb[0])*scaleW;
+            p.y = (p.y-vb[1])*scaleH;
         }
         svgObj.paths.forEach(path => path.points.forEach(applyViewBox));
     }
