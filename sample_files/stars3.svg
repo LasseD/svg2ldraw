@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" height="650">
+
+<rect x="1e-6" y="1e-6" width="2963.999" height="2099.999" fill="#3c3b6e"/>
+
+<g fill="#FFF" id="s4">
+<path id="s" d="
+M 
+361,173
+240 224
+
+318,307
+203 224 
+Z"/>
+
+<path id="s" d="
+M 
+361,473 
+291 524
+203 524 
+Z" fill="#0F0"/>
+
+</g>
+
+</svg>

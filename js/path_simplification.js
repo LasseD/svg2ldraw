@@ -120,21 +120,34 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
     }
 }
 
+UTIL.PathSimplification.prototype.getTransformation = function(txt, baseTransformation) {
+    if(txt.startsWith('matrix(')) {
+        var a = txt.substring(7).split(',').map(x => parseFloat(x));
+        return function(p) {
+            var x = p.x*a[0] + p.y*a[2] + a[4];
+            var y = p.x*a[1] + p.y*a[3] + a[5];
+            return baseTransformation(new UTIL.Point(x, y));
+        };
+    }
+    else if(txt.startsWith('translate(')) {
+        var a = txt.substring(10).split(',').map(x => parseFloat(x));
+        return function(p) {
+            var x = p.x+a[0];
+            var y = p.x+a[1];
+            return baseTransformation(new UTIL.Point(x, y));
+        };
+    }
+    else {
+        this.onWarning(tVal, 'Unsupported transformation "' + tVal + '". SVG groups with this type of transformation will be ignored.');
+        return baseTransformation;
+    }
+}
+
 UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill, transformation) {
     var a = g.attributes;
     var groupTransformation = transformation;
     if(a.transform) {
-        var tVal = a.transform.value;
-        if(!tVal.startsWith('matrix(')) {
-            this.onWarning(tVal, 'Unsupported transformation "' + tVal + '". SVG groups with this type of transformation will be ignored.');
-            return;
-        }
-        var a = tVal.substring(7).split(',').map(x => parseFloat(x));
-        groupTransformation = function(p) {
-            var x = p.x*a[0] + p.y*a[2] + a[4];
-            var y = p.x*a[1] + p.y*a[3] + a[5];
-            return transformation(new UTIL.Point(x, y));
-        }
+        groupTransformation = this.getTransformation(a.transform.value, transformation);
     }
     var group = new UTIL.Group(groupTransformation);
     var overloadedOutputPaths = {};
@@ -281,8 +294,8 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         p.push(transformation(new UTIL.Point(x,y)));
     }
 
-    var x0, y0;
-    var cmd = 'M';
+    var x0, y0, x1, y1, x2, y2, x3, y3, p0, p1, p2, p3;
+    var cmd = 'M', prevCmd = 'M';
     for(var i = 0; i < tokens.length; i++) {
 	x0 = x, y0 = y;
 	if(tokens[i].match(/[a-zA-Z]/i)) {
@@ -335,19 +348,35 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             push();
             break;
         case 'C':
-	    x = 0, y = 0;
+	    x = y = 0;
         case 'c':
-            var x1 = x+Number(tokens[++i]);
-            var y1 = y+Number(tokens[++i]);
-            var x2 = x+Number(tokens[++i]);
-            var y2 = y+Number(tokens[++i]);
-            var x3 = x+Number(tokens[++i]);
-            var y3 = y+Number(tokens[++i]);
-            var p0 = new UTIL.Point(x0, y0);
-            var p1 = new UTIL.Point(x1, y1);
-            var p2 = new UTIL.Point(x2, y2);
-            var p3 = new UTIL.Point(x3, y3);
-            var curvePoints = this.bezierRemover.handleCurve(p0, p1, p2, p3);
+            x1 = x+Number(tokens[++i]);
+            y1 = y+Number(tokens[++i]);
+            x2 = x+Number(tokens[++i]);
+            y2 = y+Number(tokens[++i]);
+            x3 = x+Number(tokens[++i]);
+            y3 = y+Number(tokens[++i]);
+            var curvePoints = this.bezierRemover.handleCurve(x0, y0, x1, y1, x2, y2, x3, y3);
+            for(var k = 0; k < curvePoints.length; k++) {
+                x = curvePoints[k].x;
+                y = curvePoints[k].y;
+                push();
+            }
+            x = x3;
+            y = y3;
+            if(x == p[0].x && y == p[0].y)
+                closePath();
+            break;
+        case 'S':
+	    x = y = 0;
+        case 's':
+            x1 = x3 + (x3-x2);
+            y1 = y3 + (y3-y2);
+            x2 = x+Number(tokens[++i]);
+            y2 = y+Number(tokens[++i]);
+            x3 = x+Number(tokens[++i]);
+            y3 = y+Number(tokens[++i]);
+            var curvePoints = this.bezierRemover.handleCurve(x0, y0, x1, y1, x2, y2, x3, y3);
             for(var k = 0; k < curvePoints.length; k++) {
                 x = curvePoints[k].x;
                 y = curvePoints[k].y;
@@ -362,6 +391,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             this.onWarning(cmd, 'Unsupported path command "' + cmd + '". The path will be skipped.');
             return;
         }
+        prevCmd = cmd;
     }
 
     if(group) {

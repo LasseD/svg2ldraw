@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1235" height="650" viewBox="0 0 7410 3900">
+
+<g fill="#F00">
+<g id="s18">
+<g id="s9">
+<g id="s5">
+<g id="s4">
+<path id="s" d="M 247 90 L 274 173 L 361,173 L 291 224 L 318,307 L 247 256 L 176 307 L 203 224 L 133,173 L 220 173 Z"/>
+<!--<path id="s" d="
+M247,90 
+318,307
+133,173
+H 361
+L 176 307
+z"/>-->
+<use xlink:href="#s" y="420"/>
+<use xlink:href="#s" y="840"/>
+<use xlink:href="#s" y="1260"/>
+</g>
+<use xlink:href="#s" y="1680"/>
+</g>
+<use xlink:href="#s4" x="247" y="210"/>
+</g>
+<use xlink:href="#s9" x="494"/>
+</g>
+<use xlink:href="#s18" x="988"/>
+<use xlink:href="#s9" x="1976"/>
+<use xlink:href="#s5" x="2470"/>
+</g>
+
+</svg>
