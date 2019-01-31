@@ -68,7 +68,8 @@ function convert_svg() {
 
   // LDraw:
   var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, 1, 1);
-  var lDrawSvg = simplifier.decompositionToSvg(simplified.width, simplified.height, decomposition);
+  simplified.paths = decomposition.trapezoids;
+  var lDrawSvg = simplifier.svgObjToSvg(simplified);
 
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
   document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawContent));

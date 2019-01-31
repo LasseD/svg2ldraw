@@ -308,7 +308,18 @@ function convert_svg(svg) {
 
   // LDraw:
   var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, scaleW, scaleH);
-  var lDrawSvg = simplifier.decompositionToSvg(simplified.width, simplified.height, decomposition);
+
+  var maxW = window.innerWidth, maxH = window.innerHeight;
+  if(simplified.width > maxW) {
+    simplified.height *= (maxW/simplified.width);
+    simplified.width = maxW;
+  }
+  if(simplified.height > maxH) {
+    simplified.width *= (maxH/simplified.height);
+    simplified.height = maxH;
+  }
+  simplified.paths = decomposition.trapezoids;
+  var lDrawSvg = simplifier.svgObjToSvg(simplified);
 
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
   $('#ldraw_result').val(lDrawContent);

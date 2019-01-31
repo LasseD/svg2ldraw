@@ -72,7 +72,7 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
     var w = parseFloat(a.width.value);
     var h = parseFloat(a.height.value);
     
-    var svgObj = {width: w, height: h, paths: []};
+    var svgObj = {width: w, height: h, viewBox:{x:0,y:0,width:w,height:h}, paths: []};
     for(var i = 0; i < svg.children.length; i++) {
         var child = svg.children[i];
         this.handleSvgNode(child, svgObj.paths, '#000000', p => p);
@@ -288,8 +288,9 @@ UTIL.PathSimplification.prototype.handleSvgCircle = function(c, outputPaths, col
 
     points = points.map(transformation);
     outputPaths.push({points:points, color:color});
-    if(a.id)
+    if(a.id) {
         this.addSimpleGroup(a.id.value, [points]);
+    }
 }
 
 UTIL.PathSimplification.prototype.handleSvgEllipse = function(e, outputPaths, color, transformation) {
@@ -308,17 +309,15 @@ UTIL.PathSimplification.prototype.handleSvgEllipse = function(e, outputPaths, co
 
     points = points.map(transformation);
     outputPaths.push({points:points, color:color});
-    if(a.id)
+    if(a.id) {
         this.addSimpleGroup(a.id.value, [points]);
-}
-
-UTIL.PathSimplification.prototype.decompositionToSvg = function(w, h, decomposition) {
-    var svg = {width:w, height:h, paths:decomposition.trapezoids};
-    return this.svgObjToSvg(svg);
+    }
 }
 
 UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
-    var ret = '<svg width="' + svgObj.width + '" height="' + svgObj.height + '" xmlns="http://www.w3.org/2000/svg">\n';
+    var ret = '<svg width="' + svgObj.width + '" height="' + svgObj.height + '"';
+    ret += ' viewBox="' + svgObj.viewBox.x + ' ' + svgObj.viewBox.y + ' ' + svgObj.viewBox.width + ' ' + svgObj.viewBox.height + '"';
+    ret += ' xmlns="http://www.w3.org/2000/svg">\n';
 
     function shorten(x) {
         if(x == Math.floor(x))
