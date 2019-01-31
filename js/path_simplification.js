@@ -10,6 +10,17 @@ UTIL.PathSimplification = function(pointsPerPixel, onWarning, onError) {
 
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
     this.groups = {}; // id -> group
+
+    this.nodeHandlers = {
+        circle: this.handleSvgCircle,
+        defs: this.handleSvgDefs,
+        ellipse: this.handleSvgEllipse,
+        g: this.handleSvgGroup,
+        metadata: x => {}, // Ignore 'metadata' nodes.
+        path: this.handleSvgPath,
+        polygon: this.handleSvgPolygon,
+        rect: this.handleSvgRect
+    };
 }
 
 UTIL.PathSimplification.prototype.addSimpleGroup = function(id, paths) {
@@ -60,12 +71,11 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
 
     var w = parseFloat(a.width.value);
     var h = parseFloat(a.height.value);
-    var transformation = function(p){return p;};
     
     var svgObj = {width: w, height: h, paths: []};
     for(var i = 0; i < svg.children.length; i++) {
         var child = svg.children[i];
-        this.handleSvgNode(child, svgObj.paths, '#000000', transformation);
+        this.handleSvgNode(child, svgObj.paths, '#000000', p => p);
     }
 
     if(a.viewBox) {
@@ -103,17 +113,10 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
         }
     }
 
-    if(node.nodeName == 'g') {
-        this.handleSvgGroup(node, output, fill, transformation);
-    }
-    else if(node.nodeName == 'path') {
-        this.handleSvgPath(node, output, fill, transformation);
-    }
-    else if(node.nodeName == 'rect') {
-        this.handleSvgRect(node, output, fill, transformation);
-    }
-    else if(node.nodeName == 'circle') {
-        this.handleSvgCircle(node, output, fill, transformation);
+    if(this.nodeHandlers.hasOwnProperty(node.nodeName)) {
+        //console.log('Handling element of type ' + node.nodeName);
+        var f = this.nodeHandlers[node.nodeName];
+        f.call(this, node, output, fill, transformation);
     }
     else {
         this.onWarning(node.nodeName, 'Unsupported SVG element type: ' + node.nodeName + '. This element will be ignored.');
@@ -122,7 +125,7 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
 
 UTIL.PathSimplification.prototype.getTransformation = function(txt, baseTransformation) {
     if(txt.startsWith('matrix(')) {
-        var a = txt.substring(7).split(',').map(x => parseFloat(x));
+        const a = txt.substring(7).split(/[\,\s]+/).map(x => parseFloat(x));
         return function(p) {
             var x = p.x*a[0] + p.y*a[2] + a[4];
             var y = p.x*a[1] + p.y*a[3] + a[5];
@@ -130,10 +133,10 @@ UTIL.PathSimplification.prototype.getTransformation = function(txt, baseTransfor
         };
     }
     else if(txt.startsWith('translate(')) {
-        var a = txt.substring(10).split(',').map(x => parseFloat(x));
+        const a = txt.substring(10).split(/[\,\s]+/).map(x => parseFloat(x));
         return function(p) {
             var x = p.x+a[0];
-            var y = p.x+a[1];
+            var y = p.y+a[1];
             return baseTransformation(new UTIL.Point(x, y));
         };
     }
@@ -179,7 +182,7 @@ UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill
             };
 
             group.refs.push({group:ref, transform:childT});
-            ref.output(outputPaths, p => childT(p)); // ERROR: viewBox transform is applied twice
+            ref.output(outputPaths, p => childT(p));
         }
         else {
             this.handleSvgNode(child, overloadedOutputPaths, fill, groupTransformation);
@@ -188,6 +191,50 @@ UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill
     if(a.id) {
         this.groups[a.id.value] = group;
     }
+}
+
+UTIL.PathSimplification.prototype.handleSvgDefs = function(g, outputPaths, fill, transformation) {
+    var a = g.attributes;
+    if(!a.id) {
+        this.onWarning('defs', 'defs element without ID has no effect and will be ignored.');
+        return;
+    }
+    var groupTransformation = transformation;
+    if(a.transform) {
+        groupTransformation = this.getTransformation(a.transform.value, transformation);
+    }
+    var group = new UTIL.Group(groupTransformation);
+
+    for(var i = 0; i < g.children.length; i++) {
+        var child = g.children[i];
+        if(child.nodeName == 'use') {
+            var childA = child.attributes;
+            var ref = childA['xlink:href'];
+            if(!ref) {
+                this.onWarning('xlink:href', 'Missing xlink:href attribute in "use" element. Output for this will be skipped.');
+                continue;
+            }
+            ref = ref.value.substring(1);
+            if(!this.groups.hasOwnProperty(ref)) {
+                this.onWarning(ref, 'Unknown ID: "' + ref + '". Skipping "use" element.');
+                continue;
+            }
+            ref = this.groups[ref];
+
+            // Transform:
+            const x = childA.x ? parseFloat(childA.x.value) : 0;
+            const y = childA.y ? parseFloat(childA.y.value) : 0;
+            var childT = function(p) {
+                return groupTransformation(new UTIL.Point(p.x+x, p.y+y));
+            };
+
+            group.refs.push({group:ref, transform:childT});
+        }
+        else {
+            this.handleSvgNode(child, group.paths, fill, groupTransformation);
+        }
+    }
+    this.groups[a.id.value] = group;
 }
 
 UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, color, transformation) {
@@ -204,18 +251,59 @@ UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, co
         this.addSimpleGroup(a.id.value, [points]);
 }
 
-UTIL.PathSimplification.prototype.handleSvgCircle = function(rect, outputPaths, color, transformation) {
-    var a = rect.attributes;
+UTIL.PathSimplification.prototype.handleSvgPolygon = function(poly, outputPaths, color, transformation) {
+    const a = poly.attributes;
+    const pts = a.points;
+    if(!pts) {
+        this.onWarning('polygon_missing_points', 'Polygon is missing its "points" attribute and cannot be drawn.');
+        return;
+    }
+    const coordinates = pts.value.split(/[\,\s]+/).map(x => parseFloat(x));
+
+    var points = [];
+    for(var i = 0; i < coordinates.length-1; i+=2) {
+        var x = coordinates[i];
+        var y = coordinates[i+1];
+        points.push(new UTIL.Point(x, y));
+    }
+    points = points.map(transformation);
+
+    outputPaths.push({points:points, color:color});
+    if(a.id)
+        this.addSimpleGroup(a.id.value, [points]);
+}
+
+UTIL.PathSimplification.prototype.handleSvgCircle = function(c, outputPaths, color, transformation) {
+    var a = c.attributes;
     var cx = a.cx ? parseFloat(a.cx.value) : 0;
     var cy = a.cy ? parseFloat(a.cy.value) : 0;
     var r = parseFloat(a.r.value);
 
     var points = [];
     var pointsPerCircle = Math.floor(this.pointsPerPixel * Math.PI * 2 * r);
-    //console.log(pointsPerCircle);
     for(var i = 0; i < pointsPerCircle; i++) {
         var angle = Math.PI*2*i/pointsPerCircle;
         points.push(new UTIL.Point(cx+Math.cos(angle)*r, cy+Math.sin(angle)*r));
+    }
+
+    points = points.map(transformation);
+    outputPaths.push({points:points, color:color});
+    if(a.id)
+        this.addSimpleGroup(a.id.value, [points]);
+}
+
+UTIL.PathSimplification.prototype.handleSvgEllipse = function(e, outputPaths, color, transformation) {
+    var a = e.attributes;
+    var cx = a.cx ? parseFloat(a.cx.value) : 0;
+    var cy = a.cy ? parseFloat(a.cy.value) : 0;
+    var rx = parseFloat(a.rx.value);
+    var ry = parseFloat(a.ry.value);
+
+    var points = [];
+    var pointsPerCircle = Math.floor(this.pointsPerPixel * Math.PI * (rx+ry));
+    for(var i = 0; i < pointsPerCircle; i++) {
+        var angle = Math.PI*2*i/pointsPerCircle;
+        points.push(new UTIL.Point(cx+Math.cos(angle)*rx, cy+Math.sin(angle)*ry));
     }
 
     points = points.map(transformation);
@@ -264,7 +352,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
 UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, color, transformation) {
     var a = path.attributes;
     var d = a.d.value;
-    var tokens = d.match(/[a-zA-Z]+|[0-9\.\-]+/gi);
+    var tokens = d.match(/[a-zA-Z]+|\-?[0-9\.]+/gi);
     var x = 0, y = 0; // Current position.
     var p = []; // Current path.
 
@@ -291,6 +379,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             if(last.x == x && last.y == y)
                 return;
         }
+        //console.warn("Transforming " + x + ", " + y + " -> " + transformation(new UTIL.Point(x,y)).x);
         p.push(transformation(new UTIL.Point(x,y)));
     }
 
@@ -304,6 +393,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
 	else {
 	    i--;
 	}
+
         switch(cmd) {
         case 'M':
             x = y = 0;
@@ -398,6 +488,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         }
         prevCmd = cmd;
     }
+    closePath();
 
     if(group) {
         this.groups[a.id.value] = group;

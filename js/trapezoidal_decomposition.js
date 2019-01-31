@@ -293,6 +293,7 @@ UTIL.TrapezoidalDecomposition.prototype.orderPathsClockwise = function() {
         if(!minTurnsLeft) {
             //console.log('Flipping path ' + i + ' with ' + pts.length + ' points');
             pts.reverse();
+            path.reversed = true;
         }
     }    
 }

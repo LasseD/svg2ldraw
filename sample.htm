@@ -4,6 +4,7 @@
     <meta charset=utf-8>
     <title>Sample Conversion from SVG to LDraw</title>
     <meta name="viewport" content="width=device-width" />
+    <style>body { background-color: #ddd; } object { background-color: white; }</style>
  </head>
  <body onload="convert_svg();">
   <script src="js/colors.js"></script>
@@ -15,7 +16,8 @@
   <script src="js/svg2ldraw.js"></script>
 
   <h3>SVG to Convert</h3>
-  <object id="svg_container" data="sample_files/test_viewbox2.svg" type="image/svg+xml"></object> 
+  <object id="svg_container" data="sample_files/test.svg" type="image/svg+xml"></object> 
+  <pre id="svg_content"></pre>
 
   <h3>Simplified SVG</h3>
   <div id="svg_simplified">
@@ -39,7 +41,7 @@ function convert_svg() {
   var svg = document.getElementById('svg_container').contentDocument.firstElementChild;
 
   // Simplify:
-  var simplifier = new UTIL.PathSimplification(0.1, onWarning, onError);
+  var simplifier = new UTIL.PathSimplification(0.01, onWarning, onError);
   var simplified = simplifier.simplifySvgDom(svg);
 
   var simplifiedSvg = simplifier.svgObjToSvg(simplified);
