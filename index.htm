@@ -26,7 +26,7 @@
       h3 {
         background-color: #9DD;
       }
-      #svg_container {
+      #svg_container, #svg_ldraw {
         background-color: white;
       }
       .section {
@@ -288,18 +288,17 @@ function convert_svg(svg) {
   }
 
   // Decomposition:
-  var simplifiedSvg = simplifier.svgObjToSvg(simplified);
-  var decomposition = new UTIL.TrapezoidalDecomposition(simplified, 0);
+  var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
   if(!decomposition.buildTrapezoids()) {
-    onWarning('cross', 'Crossing lines discovered in SVG file. Layered approach will be used. This issue can some times be avoided by increasing "Points per 100 pixels". Number of paths: ' + decomposition.paths.length);
-    for(var i = 0; i < decomposition.paths.length; i++) {
+    console.log('Intersections discovered in SVG file. Changing to intersection-handling approach. Number of paths: ' + decomposition.paths.length);
+    for(var i = decomposition.paths.length-1; i >= 0; i--) {
       var s = {paths: [decomposition.paths[i]]};
-      var d = new UTIL.TrapezoidalDecomposition(s, -i*0.01);
+      var d = new UTIL.TrapezoidalDecomposition(s);
       if(!d.buildTrapezoids()) {
-        onWarning('cross' + i, 'Self-intersections found in path ' + i + '. It will not be present in the LDraw file.');
+        console.warn('Self-intersections found in path ' + i + ' It will not be present in the output :(');
         continue;
       }
-      decomposition.trapezoids.push(...d.trapezoids);
+      decomposition.trapezoids.push(...UTIL.cut(decomposition.trapezoids, d.trapezoids));
     }
   }
 

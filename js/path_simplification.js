@@ -41,7 +41,7 @@ UTIL.Group.prototype.output = function(outputPaths, transform) {
         //console.log('group transform ' + p.x + ',' + p.y + ' -> ' + self.transform(p).x + ',' + self.transform(p).y);
         return transform(self.transform(p));
     };
-    this.paths.forEach(path => outputPaths.push({points:path.points.map(p => t(p)), color:path.color}));
+    this.paths.forEach(path => outputPaths.push({pts:path.points.map(p => t(p)), color:path.color}));
     this.refs.forEach(ref => ref.group.output(outputPaths, p => t(ref.transform(p))));
 }
 
@@ -87,7 +87,7 @@ UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
             p.x = (p.x-vb[0])*scaleW;
             p.y = (p.y-vb[1])*scaleH;
         }
-        svgObj.paths.forEach(path => path.points.forEach(applyViewBox));
+        svgObj.paths.forEach(path => path.pts.forEach(applyViewBox));
     }
 
     return svgObj;
@@ -246,7 +246,7 @@ UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, co
 
     var points = [new UTIL.Point(x,y), new UTIL.Point(x+w,y),
                   new UTIL.Point(x+w,y+h), new UTIL.Point(x,y+h)].map(transformation);
-    outputPaths.push({points:points, color:color});
+    outputPaths.push({pts:points, color:color});
     if(a.id)
         this.addSimpleGroup(a.id.value, [points]);
 }
@@ -268,7 +268,7 @@ UTIL.PathSimplification.prototype.handleSvgPolygon = function(poly, outputPaths,
     }
     points = points.map(transformation);
 
-    outputPaths.push({points:points, color:color});
+    outputPaths.push({pts:points, color:color});
     if(a.id)
         this.addSimpleGroup(a.id.value, [points]);
 }
@@ -287,7 +287,7 @@ UTIL.PathSimplification.prototype.handleSvgCircle = function(c, outputPaths, col
     }
 
     points = points.map(transformation);
-    outputPaths.push({points:points, color:color});
+    outputPaths.push({pts:points, color:color});
     if(a.id) {
         this.addSimpleGroup(a.id.value, [points]);
     }
@@ -308,7 +308,7 @@ UTIL.PathSimplification.prototype.handleSvgEllipse = function(e, outputPaths, co
     }
 
     points = points.map(transformation);
-    outputPaths.push({points:points, color:color});
+    outputPaths.push({pts:points, color:color});
     if(a.id) {
         this.addSimpleGroup(a.id.value, [points]);
     }
@@ -327,7 +327,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
 
     for(var i = 0; i < svgObj.paths.length; i++) {
         var path = svgObj.paths[i];
-        var p = path.points;
+        var p = path.pts;
         ret += '  <path d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
 
         for(var j = 1; j < p.length; j++) {
@@ -361,7 +361,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
 
     function closePath() {
         if(p && p.length >= 3) {
-            var path = {points:p, color:color};
+            var path = {pts:p, color:color};
             outputPaths.push(path);
             if(group)
                 group.paths.push(path);

@@ -19,15 +19,18 @@
 
   The sweep line algorithm assumes lines are non-intersecting and points are non-overlapping.
   Vertical lines are ignored by the algorithm and points are ordered lexicographically.
+
+  Strateggy for handling intersections:
+  - A path with self-intersections can currently not be handled.
+  - If to paths intersect, then the 'append' functionality can be used.
  */
-UTIL.TrapezoidalDecomposition = function(svgObj, z) {
+UTIL.TrapezoidalDecomposition = function(svgObj) {
     this.paths = svgObj.paths;
     this.events = [];
     this.sweepLine = [];
     this.trapezoids = [];
     this.width = svgObj.width;
     this.height = svgObj.height;
-    this.z = z;
 }
 
 UTIL.TrapezoidalDecomposition.prototype.sortEvents = function() {
@@ -104,8 +107,8 @@ UTIL.TrapezoidalDecomposition.prototype.detectCrossingLines = function() {
         else {
             for(var i = 0; i < this.sweepLine.length; i++) {
                 const line = this.sweepLine[i];
-                if(e.line.crosses(line)) {
-                    var c = e.line.getIntersection(line);
+                if(e.line.crossesLineSegment(line.p1, line.p2)) {
+                    var c = e.line.getIntersectionWithLineSegment(line.p1, line.p2);
                     console.warn("Lines cross at " + c.x + ", " + c.y);
                     cnt++;
                 }
@@ -207,7 +210,10 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, 
     var color = belowInsideIsMoving ? below.path.color : below.path.outerPath.color;
     //if(color){var colors = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '#000', '#FFF']; var color = colors[(UTIL.IDX++)%colors.length];}
     if(color) {
-        this.trapezoids.push({points:points, color:color, z:this.z});
+        if(points.length == 4)
+            this.trapezoids.push(new UTIL.Quad(points, color));
+        else
+            this.trapezoids.push(new UTIL.Triangle(points, color));
         /*console.log(color + " x=" + leftX + "->" + rightX + 
                     ", below y=" + p1.y + "->" + p4.y + (below.interiorIsAbove?'^':'v') + (belowInsideIsMoving ? 'below is moving' : below.path.outerPath.color) +
                     ", above y=" + p2.y + "->" + p3.y + (above.interiorIsAbove?'^':'v'));
@@ -270,7 +276,7 @@ UTIL.TrapezoidalDecomposition.prototype.handleEndEvent = function(e) {
 UTIL.TrapezoidalDecomposition.prototype.orderPathsClockwise = function() {
     for(var i = 0; i < this.paths.length; i++) {
         const path = this.paths[i];
-        const pts = path.points;
+        const pts = path.pts;
         if(pts.length < 3) {
             continue;
         }
@@ -301,7 +307,7 @@ UTIL.TrapezoidalDecomposition.prototype.orderPathsClockwise = function() {
 UTIL.TrapezoidalDecomposition.prototype.createEvents = function() {
     for(var i = 0; i < this.paths.length; i++) {
         const path = this.paths[i];
-        const pts = path.points;
+        const pts = path.pts;
         if(pts.length < 3) {
             console.warn("Skipping events for degenerate path (" + i + ")");
             continue;

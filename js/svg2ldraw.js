@@ -15,7 +15,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
     var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE;
     var maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
 
-    decomposition.trapezoids.forEach(path => path.points.forEach(function(p) {
+    decomposition.trapezoids.forEach(path => path.pts.forEach(function(p) {
                 minX = Math.min(minX, p.x);
                 minY = Math.min(minY, p.y);
                 maxX = Math.max(maxX, p.x);
@@ -26,13 +26,13 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
 
     const precision = this.precision;
     function convertX(x) {
-        x = (midX-x)*scaleW;
+        x = -(midX-x)*scaleW;
         if(x == parseInt(x))
             return x;
         return x.toFixed(precision);
     }
     function convertY(y) {
-        y = -(midY-y)*scaleH;
+        y = (midY-y)*scaleH;
         if(y == parseInt(y))
             return y;
         return y.toFixed(precision);
@@ -48,11 +48,11 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
     const paths = decomposition.trapezoids;
     for(var i = 0; i < paths.length; i++) {
         const path = paths[i];
-        const pts = path.points;
+        const pts = path.pts;
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
             var k = reverse ? pts.length-1-j : j;
-            ret += " " + convertX(pts[k].x) + " " + path.z + " " + convertY(pts[k].y);
+            ret += " " + convertX(pts[k].x) + " 0 " + convertY(pts[k].y);
         }
         ret += '\n';
     }
