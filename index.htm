@@ -243,6 +243,7 @@ function convert_svg(svg) {
   else { // Update text area:
     $('#svg_content').val(svg);
   }
+  $('#svg_container').empty().append(svg);
 
   // Simplify:
   var ppp = $('#pointsPerPixel')[0].value;
@@ -328,7 +329,6 @@ function readSvgFromFile(event) {
   var reader = new FileReader();
   reader.onload = function(){
     var svgTxt = reader.result;
-    $('#svg_container').empty().append(svgTxt);
     $('width').val('');
     $('height').val('');
     resetColors();
@@ -349,7 +349,6 @@ function readSvgFromUrl(event) {
       return;
     }
     var svgTxt = req.responseText;
-    $('#svg_container').empty().append(svgTxt);
     $('width').val('');
     $('height').val('');
     resetColors();

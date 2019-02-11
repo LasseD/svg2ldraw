@@ -41,7 +41,7 @@ UTIL.Group.prototype.output = function(outputPaths, transform) {
         //console.log('group transform ' + p.x + ',' + p.y + ' -> ' + self.transform(p).x + ',' + self.transform(p).y);
         return transform(self.transform(p));
     };
-    this.paths.forEach(path => outputPaths.push({pts:path.points.map(p => t(p)), color:path.color}));
+    this.paths.forEach(path => outputPaths.push({pts:path.pts.map(p => t(p)), color:path.color}));
     this.refs.forEach(ref => ref.group.output(outputPaths, p => t(ref.transform(p))));
 }
 
@@ -328,7 +328,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
     for(var i = 0; i < svgObj.paths.length; i++) {
         var path = svgObj.paths[i];
         var p = path.pts;
-        ret += '  <path d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
+        ret += '  <path opacity="0.8" d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
 
         for(var j = 1; j < p.length; j++) {
             var x = shorten(p[j].x);
