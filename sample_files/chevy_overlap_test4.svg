@@ -1,0 +1,21 @@
+<?xml version="1.0" standalone="yes"?>
+<svg width="400" height="320" xmlns="http://www.w3.org/2000/svg">
+<path d="M 
+ 220 300 
+ 25 300 
+ 55 260
+Z" fill="#0F0"/>
+
+  <path d="M
+ 55 260 
+ 390 260 
+ 390 20
+ Z" fill="#00F"/>
+
+<path d="M 
+ 62 250
+
+ 380 80
+ 380 30
+ Z" fill="#F00"/>
+</svg>

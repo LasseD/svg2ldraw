@@ -40,6 +40,9 @@ UTIL.Point.prototype.add = function(p) {
 UTIL.Line = function(p1, p2) {
     this.p1 = p1;
     this.p2 = p2;
+    if(p1.equals(p2)) {
+        throw "Degenerate line: " + this.toSvg();
+    }
 }
 
 UTIL.Line.prototype.toSvg = function() {
@@ -68,8 +71,8 @@ UTIL.Line.prototype.leftTurn = function(a) {
     return UTIL.leftTurn(this.p1, this.p2, a);
 }
 
-UTIL.Line.prototype.isParallelWith = function(p1, p2) {
-    var p0 = p2.sub(p1.sub(this.p1));
+UTIL.Line.prototype.isParallelWith = function(line) {
+    var p0 = line.p2.sub(line.p1.sub(this.p1));
     return UTIL.isZero(UTIL.getTurn(this.p1, this.p2, p0));
 }
 
@@ -79,41 +82,44 @@ UTIL.Line.prototype.intersectsPoint = function(p) {
     return UTIL.isZero(turn);
 }
 
-UTIL.Line.prototype.crossesLine = function(p1, p2) {
-    if(p1.equals(p2)) {
-        throw "Degenerate line: " + new UTIL.Line(p1,p2).toSvg();
-    }
-    if(this.isParallelWith(p1, p2)) {
-        //console.log("Parallel lines: " + this.toSvg() + " vs " + new UTIL.Line(p1,p2).toSvg())
-        return false; // Parallel lines never intersect
-    }
-    if(p1.equals(this.p1) ||
-       p1.equals(this.p2) ||
-       p2.equals(this.p1) ||
-       p2.equals(this.p2))
-        return false;
-    return this.leftTurn(p1) != this.leftTurn(p2);
-}
-
-UTIL.Line.prototype.crossesLineSegment = function(p1, p2) {
-    if(!this.crossesLine(p1, p2)) {
-        return false;
-    }
-
-    const x1 = this.p1.x, y1 = this.p1.y, x2 = this.p2.x, y2 = this.p2.y;
-    const x3 = p1.x, y3 = p1.y, x4 = p2.x, y4 = p2.y;
-    const t = ((y3-y4)*(x1-x3)+(x4-x3)*(y1-y3)) / ((x4-x3)*(y1-y2)-(x1-x2)*(y4-y3));
-    return t >= 0 && t <= 1; // Intersetion on line segment.
-}
-
 // Stolen from: http://www.cs.swan.ac.uk/~cssimon/line_intersection.html
 UTIL.Line.prototype.getIntersectionWithLine = function(p1, p2) {
     const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
     const x3 = this.p1.x, y3 = this.p1.y, x4 = this.p2.x, y4 = this.p2.y;
-    const t = ((y3-y4)*(x1-x3)+(x4-x3)*(y1-y3)) / ((x4-x3)*(y1-y2)-(x1-x2)*(y4-y3));
+    const t = ((y3-y4)*(x1-x3)+(x4-x3)*(y1-y3)) / ((x4-x3)*(y1-y2)-(x1-x2)*(y4-y3)); // segment between t=0 and t=1
+    //const t = ((y1-y2)*(x3-x1)+(x2-x1)*(y3-y1)) / ((x2-x1)*(y3-y4)-(x3-x4)*(y2-y1));
     const x = x1 + t*(x2-x1);
     const y = y1 + t*(y2-y1);
     return new UTIL.Point(x, y);
+}
+
+UTIL.lineSegmentsIntersect = function(l1, l2) {
+    if(l1.isParallelWith(l2)) {
+        return false; // Parallel lines never intersect
+    }
+
+    if(l1.intersectsPoint(l2.p1) ||
+       l1.intersectsPoint(l2.p2) ||
+       l2.intersectsPoint(l1.p1) ||
+       l2.intersectsPoint(l1.p2)) {
+        return false;
+    }
+
+    return l1.leftTurn(l2.p1) != l1.leftTurn(l2.p2) && l2.leftTurn(l1.p1) != l2.leftTurn(l1.p2);
+}
+
+/*
+  Line segment represented by p1, p2.
+ */
+UTIL.lineIntersectsLineSegment = function(l1, p1, p2) {
+    if(l1.isParallelWith(new UTIL.Line(p1, p2))) {
+        return false; // Parallel lines never intersect
+    }
+
+    if(l1.intersectsPoint(p1) || l1.intersectsPoint(p2)) {
+        return false; // Don't consider end point intersections.
+    }
+    return l1.leftTurn(p1) != l1.leftTurn(p2);
 }
 
 UTIL.COLORS = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '#000', '#BFF'];
@@ -209,8 +215,8 @@ UTIL.CH.prototype.intersectsLineSegment = function(line) {
     var prev = this.pts[this.pts.length-1];
     for(var i = 0; i < this.pts.length; i++) {
         var p = this.pts[i];
-        if(line.crossesLineSegment(p, prev)) {
-            //console.log("CH - line intersection. Line: " + this.toSvg() + ", intersection: " + this.getIntersectionWithLineSegment(prev, p).toSvg());
+        if(UTIL.lineSegmentsIntersect(line, new UTIL.Line(p, prev))) {
+            //console.log("CH - line intersection. Line: " + line.toSvg() + ", intersection: " + line.getIntersectionWithLine(prev, p).toSvg());
             //console.log(prev.toSvg());
             //console.log(p.toSvg());
             //console.log(this.toSvg());
@@ -247,7 +253,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != pointIntersectionIndices[1]);
-        ret.push(new CH(pts, this.color));
+        ret.push(new UTIL.CH(pts, this.color));
 
         idx = pointIntersectionIndices[1];
         pts = [ this.pts[idx] ];
@@ -258,12 +264,13 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != pointIntersectionIndices[0]);
-        ret.push(new CH(pts, this.color));
+        ret.push(new UTIL.CH(pts, this.color));
 
         return;
     }
 
-    const lineIntersectionIndices = this.pts.map((p,idx,a) => line.crossesLine(p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
+    const lineIntersectionIndices = this.pts.map((p,idx,a) => 
+        UTIL.lineIntersectsLineSegment(line, p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
     if(lineIntersectionIndices.length > 2 || lineIntersectionIndices.length == 0) {
         throw "Expected 1-2 CH/line intersections. Found " + lineIntersectionIndices.length;
     }
@@ -275,18 +282,18 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(
                                   this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
             pointIntersectionIndices.forEach(idx => console.log(this.pts[idx].toSvg('pink')));
-            throw "Expected 1 quad/line intersection. Found " + lineIntersectionIndices.length;
+            throw "Expected 1 CH/line intersection. Found: " + lineIntersectionIndices;
         }
 
         const v0 = pointIntersectionIndices[0];
-        const v1 = lineIntersectionIndices[1];
+        const v1 = lineIntersectionIndices[0];
         if(v0 == v1 || v0 == (v1+1)%this.pts.length) {
-            throw "Unexpected quad/line intersection in adjacent line/vertex!";
+            throw "Unexpected CH/line intersection in adjacent line/vertex!";
         }
         
         const va = line.getIntersectionWithLine(this.pts[v1], this.pts[(v1+1)%this.pts.length]);
-        // Split in v0-...-va and v0-va-...
-        var pts = [ this.pts[v0] ];
+        // Split in va-v0-... and v0-va-...
+        var pts = [ va, this.pts[v0] ];
         var idx = v0;
         do {
             idx++;
@@ -295,10 +302,9 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != v1);
-        pts.push(va);
-        ret.push(new CH(pts, this.color));
+        ret.push(new UTIL.CH(pts, this.color));
 
-        pts = [ this.pts[v0], va ];
+        pts = [ va ];
         idx = v1;
         do {
             idx++;
@@ -307,7 +313,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != v0);
-        ret.push(new CH(pts, this.color));
+        ret.push(new UTIL.CH(pts, this.color));
 
         return;
     }

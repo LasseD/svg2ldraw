@@ -126,7 +126,7 @@ UTIL.TrapezoidalDecomposition.prototype.detectCrossingLines = function() {
         else {
             for(var i = 0; i < this.sweepLine.length; i++) {
                 const line = this.sweepLine[i];
-                if(e.line.crossesLineSegment(line.p1, line.p2)) {
+                if(UTIL.lineSegmentsIntersect(e.line, line)) {
                     var c = e.line.getIntersectionWithLine(line.p1, line.p2);
                     console.warn("Lines cross at " + c.x + ", " + c.y);
                     cnt++;

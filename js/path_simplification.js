@@ -328,7 +328,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
     for(var i = 0; i < svgObj.paths.length; i++) {
         var path = svgObj.paths[i];
         var p = path.pts;
-        ret += '  <path opacity="0.8" d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
+        ret += '  <path d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
 
         for(var j = 1; j < p.length; j++) {
             var x = shorten(p[j].x);

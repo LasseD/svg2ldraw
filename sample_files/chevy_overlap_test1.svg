@@ -1,0 +1,36 @@
+<?xml version="1.0" standalone="yes"?>
+<svg width="600" height="300" xmlns="http://www.w3.org/2000/svg">
+
+<path d="
+M 220 260 
+L 25 300 
+L 55 260
+Z" fill="#F00"/>
+
+  <path d="
+M 
+76 80
+55 260 
+390 260
+390 20 
+Z" fill="#c39a3b"/>
+
+<path d="
+M
+ 200 100
+ 62 176
+ 62 250
+
+ Z" fill="#00F"/>
+
+<!-- Observe the following failure:
+<svg width="200" height="200" viewBox="41.2 173.2 0.3 0.3" xmlns="http://www.w3.org/2000/svg">
+ <line stroke="black" stroke-width="0.01" 
+  x1="41.33333333333333" y1="173.347263681592" 
+  x2="50.666666666666664" y2="173.37512437810943"/>
+ <circle  r="0.01" 
+  cx="41.33333333333333" cy="173.33333333333331"/>
+</svg>
+-->
+
+</svg>

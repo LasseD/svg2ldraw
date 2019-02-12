@@ -1,0 +1,20 @@
+<?xml version="1.0" standalone="yes"?>
+<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">  
+
+ <path d="
+M0 0 h 50 v 50 h-50 z
+" fill="#BFF"/>
+
+ <path d="
+M50 0 h 50 v 50 h-50 z
+" fill="#BF0"/>
+
+ <path d="
+M0 50 h 50 v 50 h-50 z
+" fill="#BBF"/>
+
+ <path d="
+M50 50 h 50 v 50 h-50 z
+" fill="#B00"/>
+
+</svg>
