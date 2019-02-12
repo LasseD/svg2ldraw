@@ -82,6 +82,12 @@ UTIL.Line.prototype.intersectsPoint = function(p) {
     return UTIL.isZero(turn);
 }
 
+UTIL.Line.prototype.getCenterPoint = function() {
+    var x = (this.p1.x+this.p2.x)*0.5;
+    var y = (this.p1.y+this.p2.y)*0.5;
+    return new UTIL.Point(x, y);
+}
+
 // Stolen from: http://www.cs.swan.ac.uk/~cssimon/line_intersection.html
 UTIL.Line.prototype.getIntersectionWithLine = function(p1, p2) {
     const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
@@ -224,7 +230,7 @@ UTIL.CH.prototype.intersectsLineSegment = function(line) {
         }
         prev = p;
     }
-    return this.isInside(line.p1) || this.isInside(line.p2);
+    return this.isInside(line.getCenterPoint());
 }
 
 /*
