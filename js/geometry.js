@@ -63,6 +63,9 @@ UTIL.getTurn = function(a, b, c) {
 UTIL.leftTurn = function(a, b, c) {
     return UTIL.getTurn(a, b, c) > UTIL.EPSILON;
 }
+UTIL.noTurn = function(a, b, c) {
+    return UTIL.isZero(UTIL.getTurn(a, b, c));
+}
 UTIL.rightTurn = function(a, b, c) {
     return UTIL.getTurn(a, b, c) < -UTIL.EPSILON;
 }
@@ -132,28 +135,40 @@ UTIL.COLORS = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '
 UTIL.IDX = 0;
 
 UTIL.CH = function(pts, color) {
-    this.pts = pts;
-    this.color = color;
-    //this.color = UTIL.COLORS[(UTIL.IDX++)%UTIL.COLORS.length];
-
-    // Verify that pts form a convext hull without duplicates:
     if(pts.length < 3) {
         throw "Degenerate convex hull with only " + pts.length + " vertices!";
     }
-    var prevprev = pts[pts.length-2], prev = pts[pts.length-1];
-    for(var i = 0; i < pts.length; i++) {
-        var p = pts[i];
 
-        if(!UTIL.rightTurn(prevprev, prev, p)) {
-            console.log(this.toSvg());
-            console.dir(prevprev);
-            console.dir(prev);
-            console.dir(p);
-            throw "Concave or inline points on convex hull!";
+    this.color = color;
+    //this.color = UTIL.COLORS[(UTIL.IDX++)%UTIL.COLORS.length];
+
+    // Throw out duplicates and verify convexity:
+    var prev = pts[pts.length-1], next = pts[0];
+    this.pts = [ prev ];
+    for(var i = 1; i < pts.length; i++) {
+        var p = next;
+        next = pts[i];
+
+        if(p.equals(prev) || p.equals(next)) {
+            console.warn("Skipping duplicate point on convex hull!: " + p.toSvg() + 
+                         ". This might cause the hull to become degenerate");
+            continue;
+        }
+        if(UTIL.noTurn(prev, p, next)) {
+            console.warn("Skipping inline point on convex hull!: " + p.toSvg() + 
+                         ". This might cause the hull to become degenerate");
+            continue;
+        }
+        if(!UTIL.rightTurn(prev, p, next)) {
+            console.warn(prev.toSvg('red') + p.toSvg('green') + next.toSvg('blue'));
+            throw "Concave points on convex hull!";
         }
         
-        prevprev = prev;
+        this.pts.push(p);
         prev = p;
+    }
+    if(this.pts.length < 3) {
+        throw "Degenerate convex hull with only " + this.pts.length + " vertices after duplicate removal!";
     }
 }
 

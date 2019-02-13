@@ -1,12 +1,33 @@
-<?xml version="1.0" standalone="yes"?>
-<svg width="300" height="100" xmlns="http://www.w3.org/2000/svg">  
- <path d="M10 10 H 90 V 90 H 10 L 50 50 l -30 -5 L 10 10 " fill="#BBFF00"/>
- <path d="M 110 10 h 50 l -5 10 l 5 10 z m 0 50 h 50 v 20 Z" fill="#00FF00"/>
- <path d="M 110 15 L 160 35 C 160 45, 100 25, 110 15" />
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="10800 5500 8000 8000">
+<!-- THIS ONE CAUSES CONCATIVITY ISSUES  <path
+   d="m 12760,9746 c 611,0 1107,-496 1107,-1107 0,-611 -496,-1107 -1107,-1107 -611,0 -1107,496 -1107,1107 0,611 496,1107 1107,1107 z m 11,-1928 c -374,0 -677,303 -677,677 0,374 303,677 677,677 374,0 677,-303 677,-677 0,-374 -303,-677 -677,-677 z"
+   id="path196"
+   style="fill:#143ffd;stroke:#143ffd;stroke-width:20;stroke-linecap:round" /> -->
 
- <path d="M 200 0 h 100 l -20 50 l 20 50 h -100 Z" fill="#FF0000" />
- <path d="M 210 50 L 260 20 L 280 90 L 210 50" fill="#0000FF" />
- <path d="M 225 49 L 242 41 L 258 62 Z" fill="#FFFF00" />
- <path d="M 225 49 L 242 41 L 258 62 Z" fill="#FFFF00" />
- <path d="M 225 49 L 242 41 L 258 62 Z" fill="none" />
+<!-- THIS ONE HAS A DUPLICATE  -->
+<path
+   d="
+m 12790,9519 
+c 569,0 
+  1030,-461 
+  1030,-1030 
+  0,-569 
+  -461,-1030 
+  -1030,-1030 
+  -569,0 
+  -1030,461 
+  -1030,1030 
+  0,569 
+  461,1030 
+  1030,1030
+ z 
+"
+   id="path200"
+   style="fill:#f60f05;stroke:#f60f05;stroke-width:20;stroke-linecap:round" /> 
+
+<!-- THIS ONE CAUSES CONCATIVITY ISSUES  <path
+   d="m 12490,8912 271,-258 c 0,0 13,-74 -35,-137 -48,-62 108,-123 161,-198 53,-75 160,-303 160,-303 l -491,0 c 0,0 15,145 42,154 26,9 46,-84 46,-84 l 269,7 c 0,0 -65,114 -105,149 -40,35 -138,61 -138,61 0,0 -234,-227 -256,-203 -22,24 150,238 196,282 -5,71 -45,71 -55,106 -10,35 8,69 44,97 37,28 37,44 55,66 -7,15 -187,183 -176,223 11,40 11,40 11,40 z"
+   id="path218"
+   style="fill:#ffffff;stroke:#000000;stroke-width:20;stroke-linecap:round" /> -->
 </svg>
