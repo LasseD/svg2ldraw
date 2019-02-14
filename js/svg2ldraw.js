@@ -24,8 +24,8 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
     const w = maxX-minX, h = maxY-minY;
     const midX = (maxX+minX)*0.5, midY = (maxY+minY)*0.5;
 
-    function convert(x, scale) {
-        x = (-(midX-x)*scale).toFixed(UTIL.Precision);
+    function convert(x, mid, scale) {
+        x = ((mid-x)*scale).toFixed(UTIL.Precision);
         for(var i = 0; i < UTIL.Precision; i++) {
             var tmp = parseFloat(x).toFixed(i);
             if(parseFloat(tmp) == parseFloat(x)) {
@@ -57,7 +57,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
             var k = reverse ? pts.length-1-j : j;
-            ret += " " + convert(pts[k].x, scaleW) + " 0 " + convert(pts[k].y, scaleH);
+            ret += " " + convert(pts[k].x, midX, -scaleW) + " 0 " + convert(pts[k].y, midY, scaleH);
         }
         ret += '\n';
     }
