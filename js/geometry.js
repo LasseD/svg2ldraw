@@ -150,6 +150,7 @@ UTIL.CH = function(pts, color) {
         next = pts[i];
 
         if(p.equals(prev) || p.equals(next)) {
+            console.dir(pts);
             console.warn("Skipping duplicate point on convex hull!: " + p.toSvg() + 
                          ". This might cause the hull to become degenerate");
             continue;
@@ -176,11 +177,12 @@ UTIL.CH.prototype.getAPointInside = function() {
     // Simply return the centroid:
     var x = this.pts.map(p => p.x).reduce((sum, x) => x+sum)/this.pts.length;
     var y = this.pts.map(p => p.y).reduce((sum, y) => y+sum)/this.pts.length;
-    if(!this.isInside(new UTIL.Point(x, y))) {
-        console.dir(this);
-        throw "Invalid point inside triangle: " + x + ', ' + y;;
+    var ret = new UTIL.Point(x, y);
+    if(!this.isInside(ret)) {
+        console.warn(this.toSvg());
+        throw "Invalid point inside triangle: " + ret.toSvg();;
     }
-    return new UTIL.Point(x, y);
+    return ret;
 }
 
 UTIL.CH.prototype.toLDraw = function() {
@@ -433,4 +435,36 @@ UTIL.cut = function(as, bs) {
         }
         return true;
     });
+}
+
+UTIL.orderPathsClockwise = function(paths) {
+    for(var i = 0; i < paths.length; i++) {
+        const path = paths[i];
+        const pts = path.pts;
+        if(pts.length < 3) {
+            continue;
+        }
+
+        var prev = pts[pts.length-1], prevprev = pts[pts.length-2];
+        var minX = prev.x+1, minY;
+        var minTurnsLeft;
+        for(var j = 0; j <= pts.length; j++) {
+            const p = pts[j % pts.length];
+
+            if(minX > prev.x || (minX == prev.x && minY > prev.y)) {
+                minTurnsLeft = UTIL.rightTurn(prevprev, prev, p);
+                minX = prev.x;
+                minY = prev.y;
+            }
+            prevprev = prev;
+            prev = p;
+        }
+
+        if(!minTurnsLeft) {
+            pts.reverse();
+            path.reversed = true;
+            console.log('Flipping path ' + i + ' with ' + pts.length + ' points');
+            console.dir(path);
+        }
+    }    
 }

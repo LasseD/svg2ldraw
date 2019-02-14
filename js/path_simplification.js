@@ -280,7 +280,7 @@ UTIL.PathSimplification.prototype.handleSvgCircle = function(c, outputPaths, col
     var r = parseFloat(a.r.value);
 
     var points = [];
-    var pointsPerCircle = Math.floor(this.pointsPerPixel * Math.PI * 2 * r);
+    var pointsPerCircle = Math.max(3, Math.floor(this.pointsPerPixel * Math.PI * 2 * r));
     for(var i = 0; i < pointsPerCircle; i++) {
         var angle = Math.PI*2*i/pointsPerCircle;
         points.push(new UTIL.Point(cx+Math.cos(angle)*r, cy+Math.sin(angle)*r));
@@ -301,7 +301,7 @@ UTIL.PathSimplification.prototype.handleSvgEllipse = function(e, outputPaths, co
     var ry = parseFloat(a.ry.value);
 
     var points = [];
-    var pointsPerCircle = Math.floor(this.pointsPerPixel * Math.PI * (rx+ry));
+    var pointsPerCircle = Math.max(3, Math.floor(this.pointsPerPixel * Math.PI * (rx+ry))); // At least 3 points.
     for(var i = 0; i < pointsPerCircle; i++) {
         var angle = Math.PI*2*i/pointsPerCircle;
         points.push(new UTIL.Point(cx+Math.cos(angle)*rx, cy+Math.sin(angle)*ry));

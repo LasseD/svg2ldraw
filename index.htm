@@ -80,7 +80,7 @@
   <script src="js/color_transformation.js"></script>
   <script src="js/path_simplification.js"></script>
   <script src="js/bezier_removal.js"></script>
-  <script src="js/trapezoidal_decomposition.js"></script>
+  <script src="js/convex_hull_decomposition.js"></script>
   <script src="js/svg2ldraw.js"></script>
   
   <h1>svg2ldraw - Convert SVG Images to LDraw Patterns</h1>
@@ -288,17 +288,13 @@ function convert_svg(svg) {
     $('#width').val(parseInt(scaleW * simplified.width));
   }
 
-// Decomposition:
-var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
-for(var i = decomposition.paths.length-1; i >= 0; i--) {
-    var s = {paths: [decomposition.paths[i]]};
-    var d = new UTIL.TrapezoidalDecomposition(s);
+  // Remove overlapping geometries:
+  var result = {paths:[], width:simplified.width, height:simplified.height, viewBox:simplified.viewBox};
+  for(var i = simplified.paths.length-1; i >= 0; i--) {
     try {
-      if(!d.buildTrapezoids()) {
-        onWarning(i, 'Self-intersections found in path ' + i + ' It will not be present in the output.');
-        continue;
-      }
-      decomposition.trapezoids.push(...UTIL.cut(decomposition.trapezoids, d.trapezoids));
+      var d = new UTIL.ConvexHullDecomposition([simplified.paths[i]], onWarning);
+      d.build();
+      result.paths.push(...UTIL.cut(result.paths, d.paths));
     }
     catch(exception) {
       onWarning(i, "Error while constructing path. You can potentially avoid this by changing the settings of 'Points per 100 pixels': " + exception);
@@ -306,10 +302,10 @@ for(var i = decomposition.paths.length-1; i >= 0; i--) {
   }
 
   // Colors:
-  colorTransformation.transformPaths(decomposition.trapezoids, onColorMapped);
+  colorTransformation.transformPaths(result.paths, onColorMapped);
 
   // LDraw:
-  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, scaleW, scaleH);
+  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(result, scaleW, scaleH);
 
   var maxW = window.innerWidth, maxH = window.innerHeight;
   if(simplified.width > maxW) {
@@ -320,8 +316,7 @@ for(var i = decomposition.paths.length-1; i >= 0; i--) {
     simplified.width *= (maxH/simplified.height);
     simplified.height = maxH;
   }
-  simplified.paths = decomposition.trapezoids;
-  var lDrawSvg = simplifier.svgObjToSvg(simplified);
+  var lDrawSvg = simplifier.svgObjToSvg(result);
 
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
   $('#ldraw_result').val(lDrawContent);

@@ -24,13 +24,12 @@
   - A path with self-intersections can currently not be handled.
   - If to paths intersect, then the 'append' functionality can be used.
  */
-UTIL.TrapezoidalDecomposition = function(svgObj) {
+UTIL.TrapezoidalDecomposition = function(svgObj, onWarning) {
     this.paths = svgObj.paths;
     this.events = [];
     this.sweepLine = [];
     this.trapezoids = [];
-    this.width = svgObj.width;
-    this.height = svgObj.height;
+    this.onWarning = onWarning;
 }
 
 UTIL.TrapezoidalDecomposition.prototype.sortEvents = function() {
@@ -50,7 +49,7 @@ UTIL.TrapezoidalDecomposition.prototype.sortEvents = function() {
 UTIL.TrapezoidalDecomposition.prototype.buildTrapezoids = function() {
     var ok = true;
     // Ensure all paths turn clockwise:
-    this.orderPathsClockwise();
+    UTIL.orderPathsClockwise(this.paths);
 
     // Set up events from line segments:
     this.createEvents();
@@ -211,8 +210,8 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, 
     const belowInsideIsMoving = below.interiorIsAbove;
     const leftX = Math.max(belowInsideIsMoving ? below.leftInside.x : below.leftOutside.x,
                            aboveInsideIsMoving ? above.leftInside.x : above.leftOutside.x);
-    if(leftX >= rightX) {
-        return; // Trapezoid already output.
+    if(leftX >= rightX - UTIL.EPSILON) {
+        return; // Trapezoid already output or degenerate.
     }
 
     const p1 = new UTIL.Point(leftX, below.eval(leftX));
@@ -234,12 +233,18 @@ UTIL.TrapezoidalDecomposition.prototype.buildTrapezoid = function(above, below, 
     var color = belowInsideIsMoving ? below.path.color : below.path.outerPath.color;
     //if(color){var colors = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '#000', '#FFF']; var color = colors[(UTIL.IDX++)%colors.length];}
     if(color) {
-        this.trapezoids.push(new UTIL.CH(points, color));
         /*console.log(color + " x=" + leftX + "->" + rightX + 
                     ", below y=" + p1.y + "->" + p4.y + (below.interiorIsAbove?'^':'v') + (belowInsideIsMoving ? 'below is moving' : below.path.outerPath.color) +
                     ", above y=" + p2.y + "->" + p3.y + (above.interiorIsAbove?'^':'v'));
         console.dir(below);
         console.dir(above);//*/
+        try {
+            var t = new UTIL.CH(points, color);
+            this.trapezoids.push(t);
+        }
+        catch(exception) {
+            this.onWarning(rightX, 'Failed to generate output for trapezoid: ' + exception);
+        }
     }
     
     if(belowInsideIsMoving)
@@ -292,37 +297,6 @@ UTIL.TrapezoidalDecomposition.prototype.handleEndEvent = function(e) {
 
     this.x = e.p.x;
     this.y = e.p.y;
-}
-
-UTIL.TrapezoidalDecomposition.prototype.orderPathsClockwise = function() {
-    for(var i = 0; i < this.paths.length; i++) {
-        const path = this.paths[i];
-        const pts = path.pts;
-        if(pts.length < 3) {
-            continue;
-        }
-
-        var prev = pts[pts.length-1], prevprev = pts[pts.length-2];
-        var minX = prev.x+1, minY;
-        var minTurnsLeft;
-        for(var j = 0; j <= pts.length; j++) {
-            const p = pts[j % pts.length];
-
-            if(minX > prev.x || (minX == prev.x && minY > prev.y)) {
-                minTurnsLeft = UTIL.leftTurn(prevprev, prev, p);
-                minX = prev.x;
-                minY = prev.y;
-            }
-            prevprev = prev;
-            prev = p;
-        }
-
-        if(!minTurnsLeft) {
-            //console.log('Flipping path ' + i + ' with ' + pts.length + ' points');
-            pts.reverse();
-            path.reversed = true;
-        }
-    }    
 }
 
 UTIL.TrapezoidalDecomposition.prototype.createEvents = function() {

@@ -12,11 +12,13 @@
   <script src="js/color_transformation.js"></script>
   <script src="js/path_simplification.js"></script>
   <script src="js/bezier_removal.js"></script>
-  <script src="js/trapezoidal_decomposition.js"></script>
+  <script src="js/convex_hull_decomposition.js"></script>
   <script src="js/svg2ldraw.js"></script>
 
   <h3>SVG to Convert</h3>
-  <object id="svg_container" data="sample_files/test.svg" type="image/svg+xml"></object> 
+  <object id="svg_container" 
+data="sample_files/overlapping1.svg" 
+type="image/svg+xml"></object> 
   <pre id="svg_content"></pre>
 
   <h3>Simplified SVG</h3>
@@ -48,28 +50,21 @@ function convert_svg() {
   document.getElementById('svg_simplified').innerHTML = simplifiedSvg;
   document.getElementById('svg_content_simplified').appendChild(document.createTextNode(simplifiedSvg));
    
-  // Decomposition:
-  var decomposition = new UTIL.TrapezoidalDecomposition(simplified);
-  if(!decomposition.buildTrapezoids()) {
-    console.log('Intersections discovered in SVG file. Changing to intersection-handling approach. Number of paths: ' + decomposition.paths.length);
-    for(var i = decomposition.paths.length-1; i >= 0; i--) {
-      var s = {paths: [decomposition.paths[i]]};
-      var d = new UTIL.TrapezoidalDecomposition(s);
-      if(!d.buildTrapezoids()) {
-        console.warn('Self-intersections found in path ' + i + ' It will not be present in the output :(');
-        continue;
-      }
-      decomposition.trapezoids.push(...UTIL.cut(decomposition.trapezoids, d.trapezoids));
-    }
+  // Remove overlapping geometries:
+  var result = {paths:[], width:simplified.width, height:simplified.height, viewBox:simplified.viewBox};
+  for(var i = simplified.paths.length-1; i >= 0; i--) {
+    var d = new UTIL.ConvexHullDecomposition([simplified.paths[i]], onWarning);
+    d.build();
+    result.paths.push(...UTIL.cut(result.paths, d.paths));
   }
 
+  // Colors:
   var colorTransformation = new LDR.ColorTransformation(); // Option initial mapping as argument
-  colorTransformation.transformPaths(decomposition.trapezoids, function(){});
+  colorTransformation.transformPaths(result.paths, function(){});
 
   // LDraw:
-  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(decomposition, 1, 1);
-  simplified.paths = decomposition.trapezoids;
-  var lDrawSvg = simplifier.svgObjToSvg(simplified);
+  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(result, 1, 1);
+  var lDrawSvg = simplifier.svgObjToSvg(result);
 
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
   document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawContent));
