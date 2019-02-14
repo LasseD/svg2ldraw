@@ -452,7 +452,7 @@ UTIL.orderPathsClockwise = function(paths) {
             const p = pts[j % pts.length];
 
             if(minX > prev.x || (minX == prev.x && minY > prev.y)) {
-                minTurnsLeft = UTIL.rightTurn(prevprev, prev, p);
+                minTurnsLeft = UTIL.leftTurn(prevprev, prev, p);
                 minX = prev.x;
                 minY = prev.y;
             }
@@ -460,11 +460,12 @@ UTIL.orderPathsClockwise = function(paths) {
             prev = p;
         }
 
-        if(!minTurnsLeft) {
+        //console.log('Min: ' + minX + ', ' + minY);
+        if(minTurnsLeft) {
             pts.reverse();
             path.reversed = true;
-            console.log('Flipping path ' + i + ' with ' + pts.length + ' points');
-            console.dir(path);
+            //console.log('Flipping path ' + i + ' with ' + pts.length + ' points');
+            //console.dir(path);
         }
     }    
 }

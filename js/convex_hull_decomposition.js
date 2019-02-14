@@ -18,20 +18,25 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
     UTIL.orderPathsClockwise(this.paths);
 
     function handlePath(pts, color) {
-        console.dir(pts);
-        console.log("Building convex hulls for path of size " + pts.length);
+        function rt(i0, i1, i2) {
+            return !UTIL.leftTurn(pts[i0], pts[i1], pts[i2]);
+        }
         // Helper to check no point is inside of triangle:
         function ok(i0, i1, i2) {
-            console.log('checking ' + i0 + ', ' + i1 + ', ' + i2);
-            if(!UTIL.rightTurn(pts[i0], pts[i1], pts[i2])) {
-                console.log('Not a right turn');
+            //console.warn('checking ' + i0 + ', ' + i1 + ', ' + i2);
+            if(!rt(i0, i1, i2)) {
+                //console.log('Not a right turn');
                 return false;
+            }
+            if(UTIL.noTurn(pts[i0], pts[i1], pts[i2])) {
+                //console.warn('Inline points on hull - skipping');
+                return true;
             }
             var triangle = new UTIL.CH([pts[i0], pts[i1], pts[i2]]);
             for(var i = 0; i < pts.length; i++) {
                 var p = pts[i];
                 if(triangle.isInside(p)) {
-                    console.log(p.x + ', ' + p.y + ' is inside from position ' + i);
+                    //console.log(p.x + ', ' + p.y + ' is inside from position ' + i);
                     return false;
                 }
             }
@@ -43,42 +48,51 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
             const start = i0;
             while(!ok(i0, (i0+1)%pts.length, (i0+2)%pts.length)) {
                 i0++;
-                if(i0 == pts.length)
+                if(i0 == pts.length) {
                     i0 = 0;
+                }
                 if(i0 == start) {
                     console.dir(pts);
                     throw "Assertion error: no convex tripplet on path!";
                 }
             }
+
+            const i0Next = (i0+1)%pts.length; // Right after i0
+            var i1Prev = i0Next; // Right before i1
             var i1 = (i0+2)%pts.length;
             var i2 = (i0+3)%pts.length;
-            // Expand i1 and i2 forward:
-            while(ok(i1, i2, i0)) {
-                i1++;
-                if(i1 == pts.length)
-                    i1 = 0;
-                i2 = i1+1;
-                if(i2 == pts.length)
+            /*
+              Expand i1 and i2 forward:
+             */
+            while(i2 != i0 && rt(i2, i0, i0Next) && rt(i1Prev, i1, i2) && ok(i1, i2, i0)) {
+                i1Prev = i1;
+                i1 = i2;
+                i2++;
+                if(i2 == pts.length) {
                     i2 = 0;
+                }
             }
             // TODO: Also expand the other way.
 
             // Now i0 -> i1 is the largest bite that can be taken.
-            console.log("Extracted convex hull from " + i0 + " to " + i1);
-            console.dir(pts);
+            //console.log("Extracted convex hull from " + i0 + " to " + i1);
             var hull;
             if(i0 == (i1+1)%pts.length) {
                 hull = pts;
                 pts = [];
             }
             else if(i0 < i1) {
-                hull = pts.slice(i0, i1-i0);
-                pts = pts.slice(0, i0).push(...pts.slice(i1));
+                hull = pts.slice(i0, i1+1);
+                var tmp = pts;
+                pts = pts.slice(0, i0+1);
+                pts.push(...tmp.slice(i1));
             }
             else {
-                hull = pts.slice(0, i0).push(...pts.slice(i1));
-                pts = pts.slice(i0, i1-i0);
+                hull = pts.slice(0, i0+1);
+                hull.push(...pts.slice(i1));
+                pts = pts.slice(i0, i1+1);
             }
+            //color = UTIL.COLORS[(UTIL.IDX++)%UTIL.COLORS.length];
             hulls.push(new UTIL.CH(hull, color));
         }
     }

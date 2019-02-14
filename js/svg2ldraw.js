@@ -43,9 +43,16 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 0 BFC CERTIFY CCW
 `;
-    const paths = decomposition.paths;
-    for(var i = 0; i < paths.length; i++) {
-        const path = paths[i];
+    function handlePath(path) {
+        if(path.pts.length > 4) { // Extract a quad:
+            var path1 = {pts:path.pts.slice(0, 4), lDrawColor:path.lDrawColor};
+            var pts2 = [ path.pts[0] ];
+            pts2.push(...path.pts.slice(3));
+            var path2 = {pts:pts2, lDrawColor:path.lDrawColor};
+            handlePath(path1);
+            handlePath(path2);
+            return;
+        }
         const pts = path.pts;
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
@@ -54,5 +61,6 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
         }
         ret += '\n';
     }
+    decomposition.paths.forEach(handlePath);
     return ret;
 }

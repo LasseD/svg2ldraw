@@ -1,5 +1,6 @@
 <?xml version="1.0" standalone="yes"?>
-<svg width="640" height="160" viewBox="0 0 1280 320" xmlns="http://www.w3.org/2000/svg">
+<svg width="640" height="160" viewBox="0 0 1260 320" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1260" height="320" fill="#000" />
   <path d="M 420 0 L 420 60 L 110 60 L 1160 228 L 1255 60 L 840 60 L 840 0 Z" fill="#c6cbcd"/>
 
   <path d="M 465 15 L 465 70 L 110 60 L 20 230 L 1105 90 L 1120 75 L 790 70 L 790 15 L 690 15 Z" fill="#a1a5a3"/>
