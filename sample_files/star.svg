@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" height="400">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="250" height="250">
 
 <g fill="#00f">
-<path id="s" d="M 247 90 L 274 173 L 361,173 L 291 224 L 318,307 L 247 256 L 176 307 L 203 224 L 133,173 L 220 173 Z"/>
+<path id="s" d="M 
+150 0 
+175 50
+250,50
+191 125
+218,250
+100 125
+  0,50
+100 50
+ Z"/>
 </g>
 
 </svg>

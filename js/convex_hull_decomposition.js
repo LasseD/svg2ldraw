@@ -21,9 +21,11 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
         function rt(i0, i1, i2) {
             return !UTIL.leftTurn(pts[i0], pts[i1], pts[i2]);
         }
+
         // Helper to check no point is inside of triangle:
         function ok(i0, i1, i2) {
             //console.warn('checking ' + i0 + ', ' + i1 + ', ' + i2);
+            //console.dir(pts);
             if(!rt(i0, i1, i2)) {
                 //console.log('Not a right turn');
                 return false;
@@ -34,25 +36,45 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
             }
             var triangle = new UTIL.CH([pts[i0], pts[i1], pts[i2]]);
             for(var i = 0; i < pts.length; i++) {
+                if(i == i0 || i == i1 || i == i2)
+                    continue; // Own points
                 var p = pts[i];
-                if(triangle.isInside(p)) {
+                if(triangle.isOnOrInside(p)) {
                     //console.log(p.x + ', ' + p.y + ' is inside from position ' + i);
                     return false;
                 }
             }
             return true;
         }
- 
+
+        //console.dir(pts);
         while(pts.length > 0) {
-            var i0 = 0;//Math.floor(Math.random()*pts.length);
-            const start = i0;
-            while(!ok(i0, (i0+1)%pts.length, (i0+2)%pts.length)) {
+            pts = UTIL.removeInlinePoints(pts);
+            //console.log('PREPARED POINTS');
+            //console.dir(pts);
+
+            var i0 = Math.floor(Math.random()*pts.length);
+            var start = i0;
+            // Find first concave point (in any exists):
+            while(ok(i0, (i0+1)%pts.length, (i0+2)%pts.length)) {
                 i0++;
                 if(i0 == pts.length) {
                     i0 = 0;
                 }
                 if(i0 == start) {
-                    console.dir(pts);
+                    break; // All are convex.
+                }
+            }
+            start = i0;
+            while(!ok(i0, (i0+1)%pts.length, (i0+2)%pts.length)) {
+                //console.log('Testing index ' + i0);
+                i0++;
+                if(i0 == pts.length) {
+                    //console.log('i0 is ' + pts.length);
+                    i0 = 0;
+                }
+                if(i0 == start) {
+                    //console.dir(pts);
                     throw "Assertion error: no convex tripplet on path!";
                 }
             }
@@ -62,7 +84,7 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
             var i1 = (i0+2)%pts.length;
             var i2 = (i0+3)%pts.length;
             /*
-              Expand i1 and i2 forward:
+              Expand i1 forward:
              */
             while(i2 != i0 && rt(i2, i0, i0Next) && rt(i1Prev, i1, i2) && ok(i1, i2, i0)) {
                 i1Prev = i1;
@@ -72,7 +94,6 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
                     i2 = 0;
                 }
             }
-            // TODO: Also expand the other way.
 
             // Now i0 -> i1 is the largest bite that can be taken.
             //console.log("Extracted convex hull from " + i0 + " to " + i1);
@@ -82,17 +103,23 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
                 pts = [];
             }
             else if(i0 < i1) {
+                //console.log('a');
                 hull = pts.slice(i0, i1+1);
                 var tmp = pts;
                 pts = pts.slice(0, i0+1);
                 pts.push(...tmp.slice(i1));
             }
             else {
-                hull = pts.slice(0, i0+1);
-                hull.push(...pts.slice(i1));
-                pts = pts.slice(i0, i1+1);
+                //console.log('b');
+                hull = pts.slice(0, i1+1);
+                hull.push(...pts.slice(i0));
+                pts = pts.slice(i1, i0+1);
             }
             //color = UTIL.COLORS[(UTIL.IDX++)%UTIL.COLORS.length];
+            //console.log('Hull generated:');
+            //console.dir(hull);
+            //console.log('Remaining:');
+            //console.dir(pts);
             hulls.push(new UTIL.CH(hull, color));
         }
     }

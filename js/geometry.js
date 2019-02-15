@@ -2,7 +2,7 @@
 
 var UTIL = {};
 UTIL.Precision = 4; // Used for outputting to LDraw
-UTIL.EPSILON = 1e-5; // Used for epsilon-comparisons for equality.
+UTIL.EPSILON = 1e-7; // Used for epsilon-comparisons for equality.
 
 UTIL.isZero = function(x) {
     return x >= -UTIL.EPSILON && x <= UTIL.EPSILON;;
@@ -58,6 +58,7 @@ UTIL.Line.prototype.eval = function(x) {
 }
 
 UTIL.getTurn = function(a, b, c) {
+    //console.log('turn: ' + ((b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x)));
     return (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x);
 }
 UTIL.leftTurn = function(a, b, c) {
@@ -134,42 +135,64 @@ UTIL.lineIntersectsLineSegment = function(l1, p1, p2) {
 UTIL.COLORS = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '#000', '#BFF'];
 UTIL.IDX = 0;
 
-UTIL.CH = function(pts, color) {
+UTIL.removeInlinePoints = function(pts) {
     if(pts.length < 3) {
-        throw "Degenerate convex hull with only " + pts.length + " vertices!";
+        return pts;
     }
 
-    this.color = color;
-    //this.color = UTIL.COLORS[(UTIL.IDX++)%UTIL.COLORS.length];
+    // Find index of min-point, as it is guaranteed not to be removed:
+    var iMin = 0, min = pts[0];
+    for(var i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        if(p.x < min.x || (p.x == min.x && p.y < min.y)) {
+            iMin = i;
+            min = pts[i];
+        }
+    }
 
-    // Throw out duplicates and verify convexity:
-    var prev = pts[pts.length-1], next = pts[0];
-    this.pts = [ prev ];
-    for(var i = 1; i < pts.length; i++) {
+    var prev = min, next = pts[(iMin+1)%pts.length];
+    var ret = [min];
+    for(var i = 2; i <= pts.length; i++) { // Add remaining points:
         var p = next;
-        next = pts[i];
+        var idx = (i+iMin)%pts.length;
+        next = pts[idx];
 
         if(p.equals(prev) || p.equals(next)) {
-            console.dir(pts);
-            console.warn("Skipping duplicate point on convex hull!: " + p.toSvg() + 
-                         ". This might cause the hull to become degenerate");
-            continue;
+            console.warn("Removing duplicate on position " + idx + ": " + p.x + ", " + p.y);
+            continue; // Duplicate
         }
         if(UTIL.noTurn(prev, p, next)) {
-            console.warn("Skipping inline point on convex hull!: " + p.toSvg() + 
-                         ". This might cause the hull to become degenerate");
-            continue;
+            console.warn("Removing inline point on position " + idx + ": " + p.x + ", " + p.y);
+            continue; // Inline
         }
+        
+        ret.push(p);
+        prev = p;
+    }
+    return ret;
+}
+
+UTIL.CH = function(pts, color) {
+    this.pts = UTIL.removeInlinePoints(pts);
+    if(this.pts.length < 3) {
+        throw "Degenerate convex hull with only " + this.pts.length + " vertices!";
+    }
+
+    //this.color = UTIL.COLORS[(UTIL.IDX++)%UTIL.COLORS.length];
+    this.color = color;
+
+    // Throw out duplicates and verify convexity:
+    var prev = this.pts[this.pts.length-1], next = this.pts[0];
+    for(var i = 1; i < this.pts.length; i++) {
+        var p = next;
+        next = this.pts[i];
+
         if(!UTIL.rightTurn(prev, p, next)) {
-            console.warn(prev.toSvg('red') + p.toSvg('green') + next.toSvg('blue'));
+            console.warn(prev.toSvg('red') + p.toSvg('green') + next.toSvg('blue') + this.toSvg());
             throw "Concave points on convex hull!";
         }
         
-        this.pts.push(p);
         prev = p;
-    }
-    if(this.pts.length < 3) {
-        throw "Degenerate convex hull with only " + this.pts.length + " vertices after duplicate removal!";
     }
 }
 
@@ -234,6 +257,17 @@ UTIL.CH.prototype.isInside = function(pointInside) {
     return true;
 }
 
+UTIL.CH.prototype.isOnOrInside = function(pointInside) {
+    var prev = this.pts[this.pts.length-1];
+    for(var i = 0; i < this.pts.length; i++) {
+        var p = this.pts[i];
+        if(UTIL.leftTurn(prev, p, pointInside))
+            return false;
+        prev = p;
+    }
+    return true;
+}
+
 UTIL.CH.prototype.intersectsLineSegment = function(line) {
     var prev = this.pts[this.pts.length-1];
     for(var i = 0; i < this.pts.length; i++) {
@@ -254,6 +288,7 @@ UTIL.CH.prototype.intersectsLineSegment = function(line) {
   Assert the line already splits the CH.
  */
 UTIL.CH.prototype.splitByLine = function(line, ret) {
+    //console.log('splitting ' + this.toSvg() + ' by line ' + line.toSvg());
     const pointIntersectionIndices = this.pts.map((p,idx) => line.intersectsPoint(p) ? idx : -1).filter(x => x >= 0);
     if(pointIntersectionIndices.length > 2) {
         console.log(line.toSvg());
@@ -295,7 +330,9 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     const lineIntersectionIndices = this.pts.map((p,idx,a) => 
         UTIL.lineIntersectsLineSegment(line, p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
     if(lineIntersectionIndices.length > 2 || lineIntersectionIndices.length == 0) {
-        throw "Expected 1-2 CH/line intersections. Found " + lineIntersectionIndices.length;
+        lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(
+                                                                                        this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
+        throw "Expected 1-2 CH/line intersections. Found " + lineIntersectionIndices.length + " intersections!";
     }
 
     if(pointIntersectionIndices.length == 1) { // Split in two with a single line split:

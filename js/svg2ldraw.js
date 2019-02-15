@@ -37,6 +37,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
 
     var reverse = (scaleW < 0) != (scaleH < 0);
 
+    var cnt = 0;
     var ret = '0 Name: ' + (decomposition.name ? decomposition.name : 'INSERT_NAME_HERE');
     ret += `
 0 Author: svg2ldraw
@@ -60,7 +61,9 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
             ret += " " + convert(pts[k].x, midX, -scaleW) + " 0 " + convert(pts[k].y, midY, scaleH);
         }
         ret += '\n';
+        cnt++;
     }
     decomposition.paths.forEach(handlePath);
+    console.log('Built lDraw file from ' + cnt + ' triangles and quads.');
     return ret;
 }
