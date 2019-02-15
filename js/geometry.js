@@ -194,6 +194,7 @@ UTIL.CH = function(pts, color) {
         
         prev = p;
     }
+    this.getAPointInside(); // Verify that we are not so small that the point inside fails.
 }
 
 UTIL.CH.prototype.getAPointInside = function() {
@@ -297,6 +298,17 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         throw "Line intersects more than 2 vertices of CH: " + pointIntersectionIndices;
     }
 
+    const color = this.color;
+    function push(pts) {
+        try {
+            ret.push(new UTIL.CH(pts, color));
+        }
+        catch(exception) {
+            console.warn('Failed to create convex hull from points:');
+            console.dir(pts);
+        }
+    }
+
     if(pointIntersectionIndices.length == 2) { // Split in two or not at all
         if(pointIntersectionIndices[1]-pointIntersectionIndices[0] == 1 ||
            pointIntersectionIndices[1]-pointIntersectionIndices[0] == this.pts.length-1) {
@@ -311,7 +323,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != pointIntersectionIndices[1]);
-        ret.push(new UTIL.CH(pts, this.color));
+        push(pts);
 
         idx = pointIntersectionIndices[1];
         pts = [ this.pts[idx] ];
@@ -322,7 +334,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != pointIntersectionIndices[0]);
-        ret.push(new UTIL.CH(pts, this.color));
+        push(pts);
 
         return;
     }
@@ -362,7 +374,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != v1);
-        ret.push(new UTIL.CH(pts, this.color));
+        push(pts);
 
         pts = [ va ];
         idx = v1;
@@ -373,7 +385,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
             pts.push(this.pts[idx]);
         }
         while(idx != v0);
-        ret.push(new UTIL.CH(pts, this.color));
+        push(pts);
 
         return;
     }
@@ -398,9 +410,8 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         if(idx == this.pts.length)
             idx = 0;
         pts.push(this.pts[idx]);
-    }
-    while(idx != i0);
-    ret.push(new UTIL.CH(pts, this.color));
+    } while(idx != i0);
+    push(pts);
 
     pts = [ x1, x0 ];
     var idx = i0;
@@ -409,9 +420,8 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         if(idx == this.pts.length)
             idx = 0;
         pts.push(this.pts[idx]);
-    }
-    while(idx != i1);
-    ret.push(new UTIL.CH(pts, this.color));
+    } while(idx != i1);
+    push(pts);
 }
 
 /*

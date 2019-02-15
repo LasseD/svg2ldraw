@@ -53,7 +53,7 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
             //console.log('PREPARED POINTS');
             //console.dir(pts);
 
-            var i0 = Math.floor(Math.random()*pts.length);
+            var i0 = 0;//Math.floor(Math.random()*pts.length);
             var start = i0;
             // Find first concave point (in any exists):
             while(ok(i0, (i0+1)%pts.length, (i0+2)%pts.length)) {
