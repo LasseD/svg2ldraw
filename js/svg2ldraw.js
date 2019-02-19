@@ -11,7 +11,7 @@ SVG2LDRAW.Svg = function() {
 
 }
 
-SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
+    SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickness, c) {
     var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE;
     var maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
 
@@ -58,12 +58,36 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH) {
         ret += pts.length + " " + path.lDrawColor;
         for(var j = 0; j < pts.length; j++) {
             var k = reverse ? pts.length-1-j : j;
-            ret += " " + convert(pts[k].x, midX, -scaleW) + " 0 " + convert(pts[k].y, midY, scaleH);
+            ret += " " + convert(pts[k].x, midX, -scaleW) + " " + (-thickness) + "  " + convert(pts[k].y, midY, scaleH);
         }
         ret += '\n';
         cnt++;
     }
     decomposition.paths.forEach(handlePath);
+
+    // `Add box if thickness > 0:
+    if(thickness > 0) {
+        console.log('Adding box due to thickness being ' + thickness);
+        minX = convert(minX, midX, -scaleW);
+        maxX = convert(maxX, midX, -scaleW);
+        minY = convert(minY, midY, scaleH);
+        maxY = convert(maxY, midY, scaleH);
+        var t = -thickness;
+        function output(coords) {
+            ret += "4 " + c;
+            coords.forEach(coord => ret += " " + coord);
+            ret += '\n';
+        }
+        // Below:
+        output([maxX, 0, maxY, minX, 0, maxY, minX, 0, minY, maxX, 0, minY]);
+        // 4 sides:
+        output([minX, 0, minY, minX, t, minY, maxX, t, minY, maxX, 0, minY]);
+        output([maxX, 0, maxY, maxX, t, maxY, minX, t, maxY, minX, 0, maxY]);
+        output([minX, 0, maxY, minX, t, maxY, minX, t, minY, minX, 0, minY]);
+        output([maxX, 0, minY, maxX, t, minY, maxX, t, maxY, maxX, 0, maxY]);
+        cnt += 5;
+    }
+
     console.log('Built lDraw file from ' + cnt + ' triangles and quads.');
     return ret;
 }

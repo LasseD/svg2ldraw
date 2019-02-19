@@ -41,7 +41,7 @@ UTIL.Group.prototype.output = function(outputPaths, transform) {
         //console.log('group transform ' + p.x + ',' + p.y + ' -> ' + self.transform(p).x + ',' + self.transform(p).y);
         return transform(self.transform(p));
     };
-    this.paths.forEach(path => outputPaths.push({pts:path.pts.map(p => t(p)), color:path.color}));
+    this.paths.forEach(path => outputPaths.push(new UTIL.Path(path.pts.map(p => t(p)), path.color)));
     this.refs.forEach(ref => ref.group.output(outputPaths, p => t(ref.transform(p))));
 }
 
@@ -246,7 +246,7 @@ UTIL.PathSimplification.prototype.handleSvgRect = function(rect, outputPaths, co
 
     var points = [new UTIL.Point(x,y), new UTIL.Point(x+w,y),
                   new UTIL.Point(x+w,y+h), new UTIL.Point(x,y+h)].map(transformation);
-    outputPaths.push({pts:points, color:color});
+    outputPaths.push(new UTIL.Path(points, color));
     if(a.id)
         this.addSimpleGroup(a.id.value, [points]);
 }
@@ -268,7 +268,7 @@ UTIL.PathSimplification.prototype.handleSvgPolygon = function(poly, outputPaths,
     }
     points = points.map(transformation);
 
-    outputPaths.push({pts:points, color:color});
+    outputPaths.push(new UTIL.Path(points, color));
     if(a.id)
         this.addSimpleGroup(a.id.value, [points]);
 }
@@ -287,7 +287,7 @@ UTIL.PathSimplification.prototype.handleSvgCircle = function(c, outputPaths, col
     }
 
     points = points.map(transformation);
-    outputPaths.push({pts:points, color:color});
+    outputPaths.push(new UTIL.Path(points, color));
     if(a.id) {
         this.addSimpleGroup(a.id.value, [points]);
     }
@@ -308,7 +308,7 @@ UTIL.PathSimplification.prototype.handleSvgEllipse = function(e, outputPaths, co
     }
 
     points = points.map(transformation);
-    outputPaths.push({pts:points, color:color});
+    outputPaths.push(new UTIL.Path(points, color));
     if(a.id) {
         this.addSimpleGroup(a.id.value, [points]);
     }
@@ -361,7 +361,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
 
     function closePath() {
         if(p && p.length >= 3) {
-            var path = {pts:p, color:color};
+            var path = new UTIL.Path(p, color);
             outputPaths.push(path);
             if(group)
                 group.paths.push(path);

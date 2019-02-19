@@ -152,6 +152,19 @@
    </span>
   </div>
 
+  <h3>Bonus Step - Thickness</h3>
+  <div id="select_thickness" class="section">
+   <span class="desc">
+     For rectangular stickers you can set a 'thickness' value to replicate how stickers raise just a bit over the surface of LEGO models. 
+     A value of 0.5 seems to work nicely here.
+     The color 'Box color' is used for this.
+   </span>
+   <span class="choice">
+    <label for="thickness">Thickness in LDU (Leave as 0 to skip this feature)</label>
+    <input id="thickness" name="thickness" type="text" value="0" onchange="readSvgFromText();" />
+   </span>
+  </div>
+
   <div id="contact">
     <a href="https://github.com/LasseD/svg2ldraw">svg2ldraw</a> is in the public domain and may be freely distributed.
     Contact: Lasse Deleuran on <a href="mailto:lasse.deleuran@gmail.com">lasse.deleuran@gmail.com</a>.
@@ -196,7 +209,6 @@ function onColorMapped(caller, htmlColor, color) {
     var optionEle = document.createElement('option'); selectEle.appendChild(optionEle);
     optionEle.setAttribute('value', i);
     optionEle.innerHTML = c.text;
-    optionEle.append(makeColorCube(c.hex));
     if(c.id == color.id) {
       optionEle.setAttribute('selected', 'selected');
     }
@@ -216,6 +228,9 @@ function onWarning(type, message) {
   if(seenWarningTypes.hasOwnProperty(type)) {
     return; // Already seen.
   }
+
+  message = message.replace('<', '&lt;');
+
   var span = document.createElement('span');
   span.setAttribute('class', 'warning');
   span.innerHTML = message;
@@ -297,15 +312,19 @@ function convert_svg(svg) {
       result.paths.push(...UTIL.cut(result.paths, d.paths));
     }
     catch(exception) {
-      onWarning(i, "Error while constructing path. You can potentially avoid this by changing the settings of 'Points per 100 pixels': " + exception);
+      onWarning(i, "Error while constructing path. Path will be ignored. You can potentially avoid this by changing the settings of 'Points per 100 pixels'. Error message: " + exception);
     }
   }
 
   // Colors:
   colorTransformation.transformPaths(result.paths, onColorMapped);
+  colorTransformation.transform('Box color', onColorMapped);
 
   // LDraw:
-  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(result, scaleW, scaleH);
+  var thickness = parseFloat( $('#thickness')[0].value );
+  if(!(thickness > 0))
+    thickness = 0;
+  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(result, scaleW, scaleH, thickness, colorTransformation.map['Box color'].id);
 
   var maxW = window.innerWidth, maxH = window.innerHeight;
   if(simplified.width > maxW) {

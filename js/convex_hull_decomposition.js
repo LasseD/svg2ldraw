@@ -17,7 +17,11 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
     // Ensure all paths turn clockwise:
     UTIL.orderPathsClockwise(this.paths);
 
-    function handlePath(pts, color) {
+    function handlePath(path) {
+        //console.log('Handling: ' + path.toSvg());
+        var pts = path.pts;
+        var color = path.color;
+
         function rt(i0, i1, i2) {
             return !UTIL.leftTurn(pts[i0], pts[i1], pts[i2]);
         }
@@ -75,7 +79,7 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
                 }
                 if(i0 == start) {
                     //console.dir(pts);
-                    throw "Assertion error: no convex tripplet on path!";
+                    throw "No convex tripplet on path: " + path.toSvg();
                 }
             }
 
@@ -123,7 +127,7 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
             hulls.push(new UTIL.CH(hull, color));
         }
     }
-    this.paths.forEach(path => handlePath(path.pts, path.color));
+    this.paths.forEach(handlePath);
 
     this.paths = hulls;
 }

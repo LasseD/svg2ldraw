@@ -516,3 +516,16 @@ UTIL.orderPathsClockwise = function(paths) {
         }
     }    
 }
+
+UTIL.Path = function(pts, color) {
+    this.pts = pts;
+    this.color = color;
+}
+
+UTIL.Path.prototype.toSvg = function() {
+    var ret = '<path fill="' + this.color + '" d="M';
+
+    this.pts.forEach(p => ret += " " + p.x + "," + p.y);
+    ret += 'Z"/>';
+    return ret;
+}

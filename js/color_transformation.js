@@ -32,16 +32,25 @@ LDR.ColorTransformation = function() {
 
     for(var i = 0; i < 495; i++) {
         const c = LDR.Colors[i];
-        if(!c || c.alpha || i == 24)
+        if(!c || i == 24)
             continue;
         var [r,g,b] = LDR.int2RGB(c.value);
         const hex = '#' + toHex(r) + toHex(g) + toHex(b);
         const text = i + " - " + c.name;
-        this.colors.push({r:r, g:g, b:b, id:i, c:c, hex:hex, text:text});
+        this.colors.push({r:r, g:g, b:b, id:i, c:c, hex:hex, text:text, transparent:c.alpha>0});
     }
+
+    this.specialColors = {
+        black: '000',
+        white: 'FFF',
+        red: 'F00',
+        blue: '00F',
+        green: '0F0'
+    };
+    this.specialColors['Box color'] = 'FFF';
 }
 
-    LDR.ColorTransformation.prototype.transformPaths = function(paths, onColorMapped) {
+LDR.ColorTransformation.prototype.transformPaths = function(paths, onColorMapped) {
     for(var i = 0; i < paths.length; i++) {
         const path = paths[i];
         var color = this.transform(path.color, onColorMapped);
@@ -50,16 +59,24 @@ LDR.ColorTransformation = function() {
     }
 }
 
+LDR.ColorTransformation.prototype.specialColorTransform = function(htmlColor) {
+    if(this.specialColors.hasOwnProperty(htmlColor))
+        return this.specialColors[htmlColor];
+    return htmlColor;
+}
+
 LDR.ColorTransformation.prototype.transform = function(htmlColor, onColorMapped) {
     if(this.map.hasOwnProperty(htmlColor)) {
         return this.map[htmlColor];
     }
 
     var key;
-    if(htmlColor.startsWith('#'))
+    if(htmlColor.startsWith('#')) {
         key = htmlColor.slice(1);
-    else
-        key = htmlColor;
+    }
+    else {
+        key = this.specialColorTransform(htmlColor);
+    }
     const colorAsInt = parseInt(key, 16);
     const [r,g,b] = key.length == 6 ? LDR.int2RGB(colorAsInt) : LDR.short2RGB(colorAsInt);
     
@@ -73,6 +90,8 @@ LDR.ColorTransformation.prototype.transform = function(htmlColor, onColorMapped)
     var best = colors[0];
     var bestDiff = diff(0);
     for(var i = 1; i < colors.length; i++) {
+        if(colors[i].transparent)
+            continue;
         const d = diff(i);
         if(d < bestDiff) {
             best = colors[i];
