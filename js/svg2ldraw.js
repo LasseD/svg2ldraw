@@ -11,10 +11,10 @@ SVG2LDRAW.Svg = function() {
 
 }
 
-    SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickness, c) {
+SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickness, c) {
     var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE;
     var maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-
+    
     decomposition.paths.forEach(path => path.pts.forEach(function(p) {
                 minX = Math.min(minX, p.x);
                 minY = Math.min(minY, p.y);
@@ -73,18 +73,40 @@ SVG2LDRAW.Svg = function() {
         minY = convert(minY, midY, scaleH);
         maxY = convert(maxY, midY, scaleH);
         var t = -thickness;
-        function output(coords) {
-            ret += "4 " + c;
+        function outputLine(coords) {
+	    ret += "2 24";
             coords.forEach(coord => ret += " " + coord);
             ret += '\n';
         }
+        function outputQuad(coords, andLines) {
+            ret += "4 " + c;
+            coords.forEach(coord => ret += " " + coord);
+            ret += '\n';
+	    if(andLines) {
+		outputLine([coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]]);
+		outputLine([coords[3], coords[4], coords[5], coords[6], coords[7], coords[8]]);
+		outputLine([coords[6], coords[7], coords[8], coords[9], coords[10], coords[11]]);
+		outputLine([coords[9], coords[10], coords[11], coords[0], coords[1], coords[2]]);
+	    }
+        }
         // Below:
-        output([maxX, 0, maxY, minX, 0, maxY, minX, 0, minY, maxX, 0, minY]);
+        outputQuad([maxX, 0, maxY, minX, 0, maxY, minX, 0, minY, maxX, 0, minY], true);
         // 4 sides:
-        output([minX, 0, minY, minX, t, minY, maxX, t, minY, maxX, 0, minY]);
-        output([maxX, 0, maxY, maxX, t, maxY, minX, t, maxY, minX, 0, maxY]);
-        output([minX, 0, maxY, minX, t, maxY, minX, t, minY, minX, 0, minY]);
-        output([maxX, 0, minY, maxX, t, minY, maxX, t, maxY, maxX, 0, maxY]);
+        outputQuad([minX, 0, minY, minX, t, minY, maxX, t, minY, maxX, 0, minY], false);
+        outputQuad([maxX, 0, maxY, maxX, t, maxY, minX, t, maxY, minX, 0, maxY], false);
+        outputQuad([minX, 0, maxY, minX, t, maxY, minX, t, minY, minX, 0, minY], false);
+        outputQuad([maxX, 0, minY, maxX, t, minY, maxX, t, maxY, maxX, 0, maxY], false);
+	// Lines above:
+        outputLine([maxX, 0, maxY, minX, 0, maxY]);
+        outputLine([minX, 0, maxY, minX, 0, minY]);
+        outputLine([minX, 0, minY, maxX, 0, minY]);
+        outputLine([maxX, 0, minY, maxX, 0, maxY]);
+	// Lines on sides
+        outputLine([maxX, 0, maxY, maxX, t, maxY]);
+        outputLine([minX, 0, maxY, minX, t, maxY]);
+        outputLine([minX, 0, minY, minX, t, minY]);
+        outputLine([maxX, 0, minY, maxX, t, minY]);
+
         cnt += 5;
     }
 
