@@ -1,7 +1,6 @@
 'use strict';
 
 var UTIL = {};
-UTIL.Precision = 4; // Used for outputting to LDraw
 UTIL.EPSILON = 1e-7; // Used for epsilon-comparisons for equality.
 
 UTIL.isZero = function(x) {
@@ -35,6 +34,12 @@ UTIL.Point.prototype.sub = function(p) {
 
 UTIL.Point.prototype.add = function(p) {
     return new UTIL.Point(this.x+p.x, this.y+p.y);
+}
+
+UTIL.Point.prototype.dist = function(p) {
+    const dx = this.x - p.x;
+    const dy = this.y - p.y;
+    return Math.sqrt(dx*dx + dy*dy);
 }
 
 UTIL.Line = function(p1, p2) {
@@ -135,10 +140,11 @@ UTIL.lineIntersectsLineSegment = function(l1, p1, p2) {
 UTIL.COLORS = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '#000', '#BFF'];
 UTIL.IDX = 0;
 
-UTIL.removeInlinePoints = function(pts) {
+UTIL.removeInlinePoints = function(pts, pointsEqual) {
     if(pts.length < 3) {
         return pts;
     }
+    pointsEqual = pointsEqual || ((a, b) => a.equals(b));
 
     // Find index of min-point, as it is guaranteed not to be removed:
     var iMin = 0, min = pts[0];
@@ -157,8 +163,8 @@ UTIL.removeInlinePoints = function(pts) {
         var idx = (i+iMin)%pts.length;
         next = pts[idx];
 
-        if(p.equals(prev) || p.equals(next)) {
-            console.warn("Removing duplicate on position " + idx + ": " + p.x + ", " + p.y);
+        if(pointsEqual(p, prev)) {// || pointsEqual(p, next)) {
+            console.warn("Removing duplicate on position " + idx + ": " + p.x + ", " + p.y + ' vs ' + prev.x + ', ' + prev.y + ', dist: ' + p.dist(prev));
             continue; // Duplicate
         }
         if(UTIL.noTurn(prev, p, next)) {
