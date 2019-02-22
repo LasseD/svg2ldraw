@@ -16,7 +16,7 @@ SVG2LDRAW.Svg = function() {
 SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickness, c) {
     var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE;
     var maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-
+    
     decomposition.paths.forEach(path => path.pts.forEach(function(p) {
         minX = Math.min(minX, p.x);
         minY = Math.min(minY, p.y);
