@@ -156,50 +156,53 @@ UTIL.removeInlinePoints = function(pts, pointsEqual) {
         }
     }
 
-    var prev = min, next = pts[(iMin+1)%pts.length];
+    var prev = min, first = min, next = pts[(iMin+1)%pts.length];
     var ret = [min];
     for(var i = 2; i <= pts.length; i++) { // Add remaining points:
         var p = next;
-        var idx = (i+iMin)%pts.length;
-        next = pts[idx];
+        next = pts[(i+iMin)%pts.length];
 
-        if(pointsEqual(p, prev)) {// || pointsEqual(p, next)) {
-            console.warn("Removing duplicate on position " + idx + ": " + p.x + ", " + p.y + ' vs ' + prev.x + ', ' + prev.y + ', dist: ' + p.dist(prev));
+        if(pointsEqual(p, prev) || pointsEqual(p, first)) {// || pointsEqual(p, next)) {
+            //console.warn("Removing duplicate on position " + idx + ": " + p.x + ", " + p.y + ' vs ' + prev.x + ', ' + prev.y + ', dist: ' + p.dist(prev));
             continue; // Duplicate
         }
         if(UTIL.noTurn(prev, p, next)) {
-            console.warn("Removing inline point on position " + idx + ": " + p.x + ", " + p.y);
+            //console.warn("Removing inline point on position " + idx + ": " + p.x + ", " + p.y);
             continue; // Inline
         }
-        
         ret.push(p);
         prev = p;
     }
     return ret;
 }
 
-UTIL.CH = function(pts, color) {
-    this.pts = UTIL.removeInlinePoints(pts);
+UTIL.CH = function(pts, color, pointsEqual) {
+    this.pts = UTIL.removeInlinePoints(pts, pointsEqual);
+
+    // Remove concave points:
+    var prev = this.pts[0], next = this.pts[1];
+    var noConcave = [prev];
+    for(var i = 2; i <= this.pts.length; i++) { // Add remaining points:
+        var p = next;
+        next = this.pts[i%this.pts.length];
+
+        if(UTIL.rightTurn(prev, p, next)) {
+            noConcave.push(p);
+            prev = p;
+        }
+    }
+    this.pts = noConcave;
+
     if(this.pts.length < 3) {
+	console.warn('Degeneracy');
+	pts.forEach(p => console.log(p.toSvg('red')));
+	this.pts.forEach(p => console.log(p.toSvg('blue')));
         throw "Degenerate convex hull with only " + this.pts.length + " vertices!";
     }
 
     //this.color = UTIL.COLORS[(UTIL.IDX++)%UTIL.COLORS.length];
     this.color = color;
 
-    // Throw out duplicates and verify convexity:
-    var prev = this.pts[this.pts.length-1], next = this.pts[0];
-    for(var i = 1; i < this.pts.length; i++) {
-        var p = next;
-        next = this.pts[i];
-
-        if(!UTIL.rightTurn(prev, p, next)) {
-            console.warn(prev.toSvg('red') + p.toSvg('green') + next.toSvg('blue') + this.toSvg());
-            throw "Concave points on convex hull!";
-        }
-        
-        prev = p;
-    }
     this.getAPointInside(); // Verify that we are not so small that the point inside fails.
 }
 
@@ -210,7 +213,7 @@ UTIL.CH.prototype.getAPointInside = function() {
     var ret = new UTIL.Point(x, y);
     if(!this.isInside(ret)) {
         console.warn(this.toSvg());
-        throw "Invalid point inside triangle: " + ret.toSvg();;
+        throw "Invalid point inside convex hull: " + ret.toSvg();;
     }
     return ret;
 }

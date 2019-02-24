@@ -2,6 +2,7 @@
 
 var SVG2LDRAW = {};
 SVG2LDRAW.Precision = 4; // Used for outputting to LDraw
+SVG2LDRAW.PrecisionMult = 10000;
 SVG2LDRAW.MinDistDiff = 0.0002;
 
 /*
@@ -68,17 +69,19 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
 
     var skipped = 0;
     function handlePath(path) {
-        console.log(path.toSvg());
-        var pts = path.pts.map(p => new UTIL.Point((p.x-midX)*scaleW, (midY-p.y)*scaleH));
-        var ptsClean = UTIL.removeInlinePoints(pts, ((a,b) => a.dist(b) < SVG2LDRAW.MinDistDiff));
-        console.dir(ptsClean);
-        if(ptsClean.length < 3) {
-            //console.warn('Skipping degenerate path.');
+        var pts = path.pts.map(p => new UTIL.Point(
+	    Math.round((midX-p.x)*scaleW*SVG2LDRAW.PrecisionMult)/SVG2LDRAW.PrecisionMult,
+	    Math.round((midY-p.y)*scaleH*SVG2LDRAW.PrecisionMult)/SVG2LDRAW.PrecisionMult
+	));
+	
+	try {
+            var clean = new UTIL.CH(pts, path.color, ((a,b) => a.dist(b) < SVG2LDRAW.MinDistDiff));
+            outputPath({pts:clean.pts.map(p => new UTIL.Point(-p.x, p.y)), lDrawColor:path.lDrawColor});
+	}
+	catch(exception) {
+	    //console.dir(exception);
             skipped++;
-            return;
-        }
-        
-        outputPath({pts:ptsClean, lDrawColor:path.lDrawColor});
+        }        
     }
 
     decomposition.paths.forEach(handlePath);
