@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1235" height="650" viewBox="0 0 7410 3900">
+
+<rect width="7410" height="3900" fill="#b22234"/>
+
+<!-- Was a stroke with width 300 - changed to rects-->
+<rect width="4446" height="300" y="300" fill="#FFF"/>
+<rect width="4446" height="300" y="900" fill="#FFF"/>
+<rect width="4446" height="300" y="1500" fill="#FFF"/>
+<rect width="7410" height="300" y="2100" fill="#FFF"/>
+<rect width="7410" height="300" y="2700" fill="#FFF"/>
+<rect width="7410" height="300" y="3300" fill="#FFF"/>
+
+<rect x="4446" width="2964" height="2100" fill="#3c3b6e"/>
+
+<g fill="#FFF">
+<g id="s18">
+<g id="s9">
+<g id="s5">
+<g id="s4">
+<path id="s" d="
+M 4693 90
+l  27 83
+h  87
+l -70  51
+l  27  83
+l -71 -51
+l -71  51
+l  27 -83
+l -70 -51
+h  87
+Z"/>
+<use xlink:href="#s" y="420"/>
+<use xlink:href="#s" y="840"/>
+<use xlink:href="#s" y="1260"/>
+</g>
+<use xlink:href="#s" y="1680"/>
+</g>
+<use xlink:href="#s4" x="247" y="210"/>
+</g>
+<use xlink:href="#s9" x="494"/>
+</g>
+<use xlink:href="#s18" x="988"/>
+<use xlink:href="#s9" x="1976"/>
+<use xlink:href="#s5" x="2470"/>
+</g>
+</svg>
