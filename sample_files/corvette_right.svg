@@ -12,10 +12,12 @@
  <rect x="-80" y="260" width="260" height="140" fill="#0F0" />
  
  <!-- Position indicators -->
- <g id="indicator">
-  <circle cx="-320" cy="312" r="31" fill="#666"/>
-  <circle cx="-320" cy="312" r="28" fill="#DDD"/>
+ <g>
+  <g id="indicator">
+   <circle cx="-320" cy="312" r="31" fill="#666"/>
+   <circle cx="-320" cy="312" r="28" fill="#DDD"/>
+  </g>
+  <use xlink:href="#indicator" x="-45" y="-65"/>
+  <use xlink:href="#indicator" x="-90" y="-130"/>
  </g>
- <use xlink:href="#indicator" x="-45" y="-65"/>
- <use xlink:href="#indicator" x="-90" y="-130"/>
 </svg>
