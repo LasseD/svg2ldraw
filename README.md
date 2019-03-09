@@ -16,7 +16,7 @@ index.htm contains the full app with the following steps and functionalities:
 
 2. Adjust colors after the automatic selection has done its best.
 
-3. Download the LDraw file
+3. Download the LDraw file.
 
 ## License
 
