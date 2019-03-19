@@ -325,18 +325,27 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
         return x.toFixed(3);
     }
 
-    for(var i = 0; i < svgObj.paths.length; i++) {
-        var path = svgObj.paths[i];
-        var p = path.pts;
-        ret += '  <path d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
+    svgObj.paths.forEach(function(path) {
+            var p = path.pts;
+            ret += '  <path d="M ' + shorten(p[0].x) + ' ' + shorten(p[0].y) + ' ';
 
-        for(var j = 1; j < p.length; j++) {
-            var x = shorten(p[j].x);
-            var y = shorten(p[j].y);
-            ret += 'L ' + x + ' ' + y + ' ';
-        }
-        ret += 'Z" fill="' + path.color +'"/>\n';
-    }
+            for(var j = 1; j < p.length; j++) {
+                var x = shorten(p[j].x);
+                var y = shorten(p[j].y);
+                ret += 'L ' + x + ' ' + y + ' ';
+            }
+            ret += 'Z" fill="' + path.color +'"/>\n';
+        });
+
+    svgObj.paths.forEach(function(path) {
+            ret += '\n';
+            path.pts.forEach(function(p) {
+                    var x = shorten(p.x);
+                    var y = shorten(p.y);
+                    ret += '  <circle cx="' + x + '" cy="' + y + '" r="3" fill="none" stroke="black" />\n';
+                });
+        });//*/
+
     ret += '</svg>';
     return ret;
 }

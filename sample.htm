@@ -13,18 +13,19 @@
   <script src="js/path_simplification.js"></script>
   <script src="js/bezier_removal.js"></script>
   <script src="js/convex_hull_decomposition.js"></script>
+  <script src="js/tjunctions.js"></script>
   <script src="js/svg2ldraw.js"></script>
 
   <h3>SVG to Convert</h3>
   <object id="svg_container" 
-data="sample_files/corvette_flag.svg"
+data="sample_files/test2.svg"
 type="image/svg+xml"></object>
   <pre id="svg_content"></pre>
 
-  <h3>Simplified SVG</h3>
-  <div id="svg_simplified">
+  <h3>Processed SVG</h3>
+  <div id="svg_processed">
   </div>
-  <pre id="svg_content_simplified"></pre>
+  <pre id="svg_content_processed"></pre>
 
   <h3>LDraw</h3>
   <div id="svg_ldraw">
@@ -44,30 +45,45 @@ function convert_svg() {
 
   // Simplify:
   var simplifier = new UTIL.PathSimplification(0.1, onWarning, onError);
-  var simplified = simplifier.simplifySvgDom(svg);
+  var simplifiedPaths = simplifier.simplifySvgDom(svg);
 
-  var simplifiedSvg = simplifier.svgObjToSvg(simplified);
-  document.getElementById('svg_simplified').innerHTML = simplifiedSvg;
-  document.getElementById('svg_content_simplified').appendChild(document.createTextNode(simplifiedSvg));
-   
   // Remove overlapping geometries:
-  var result = {paths:[], width:simplified.width, height:simplified.height, viewBox:simplified.viewBox};
-  for(var i = simplified.paths.length-1; i >= 0; i--) {
-    var d = new UTIL.ConvexHullDecomposition([simplified.paths[i]], onWarning);
-    d.build();
-    if(result.paths.length == 0)
-      result.paths.push(...d.paths);
-    else
-      result.paths.push(...UTIL.cut(result.paths, d.paths));
+  var paths = {paths:[], width:simplifiedPaths.width, height:simplifiedPaths.height, viewBox:simplifiedPaths.viewBox};
+  for(var i = simplifiedPaths.paths.length-1; i >= 0; i--) {
+    var chd = new UTIL.ConvexHullDecomposition([simplifiedPaths.paths[i]], onWarning);
+    chd.build();
+    if(paths.paths.length == 0) {
+      paths.paths.push(...chd.paths);
+    }
+    else {
+      paths.paths.push(...UTIL.cut(paths.paths, chd.paths));
+    }
   }
 
-  // Colors:
+  // Add points to prevent T-sections and to be able to combine paths:
+  var tjHandler = new UTIL.TJunctionHandler();
+  paths.paths = tjHandler.addPoints(paths.paths);
+
+  // Combine paths:
+  paths.paths = UTIL.combinePaths(paths.paths);
+
+  // Ensure all paths are convex:
+  var chd = new UTIL.ConvexHullDecomposition(paths.paths, onWarning);
+  chd.build();
+  paths.paths = chd.paths;
+  
+  // Output SVG:
+  var svg = simplifier.svgObjToSvg(paths);
+  document.getElementById('svg_processed').innerHTML = svg;
+  document.getElementById('svg_content_processed').appendChild(document.createTextNode(svg));
+
+  // Colors for LDraw:
   var colorTransformation = new LDR.ColorTransformation(); // Option initial mapping as argument
-  colorTransformation.transformPaths(result.paths, function(){});
+  colorTransformation.transformPaths(paths.paths, function(){});
 
   // LDraw:
-  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(result, 1, 1, 0.5, 1); // thickness 0.5, color 1=blue.
-  var lDrawSvg = simplifier.svgObjToSvg(result);
+  var lDrawContent = new SVG2LDRAW.Svg().toLDraw(paths, 1, 1, 0, 1); // Last parameters: Thickness, color 1=blue.
+  var lDrawSvg = simplifier.svgObjToSvg(paths);
 
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
   document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawContent));

@@ -6,9 +6,7 @@ SVG2LDRAW.PrecisionMult = 10000;
 SVG2LDRAW.MinDistDiff = 0.0002;
 
 /*
-  The main purpose of this library is to performs SVG to LDraw pattern transformation.
-  Currently supported content of SVG files is:
-  - Paths consisting of the commands mentioned in path_simplification.js
+  The purpose of this library is to performs SVG to LDraw pattern transformation.
  */
 SVG2LDRAW.Svg = function() {
 
@@ -122,6 +120,11 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
         outputLine([minX, 0, maxY, minX, 0, minY]);
         outputLine([minX, 0, minY, maxX, 0, minY]);
         outputLine([maxX, 0, minY, maxX, 0, maxY]);
+        // Lines below:
+        outputLine([maxX, t, maxY, minX, t, maxY]);
+        outputLine([minX, t, maxY, minX, t, minY]);
+        outputLine([minX, t, minY, maxX, t, minY]);
+        outputLine([maxX, t, minY, maxX, t, maxY]);
         // Lines on sides
         outputLine([maxX, 0, maxY, maxX, t, maxY]);
         outputLine([minX, 0, maxY, minX, t, maxY]);
