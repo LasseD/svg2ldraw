@@ -18,7 +18,7 @@
 
   <h3>SVG to Convert</h3>
   <object id="svg_container" 
-data="sample_files/test5.svg"
+data="sample_files/test0.svg"
 type="image/svg+xml"></object>
   <pre id="svg_content"></pre>
 
@@ -71,6 +71,9 @@ function convert_svg() {
   var chd = new UTIL.ConvexHullDecomposition(paths.paths, onWarning);
   chd.build();
   paths.paths = chd.paths;
+
+  // Re-add points to avoid T-Junctions:
+  paths.paths = tjHandler.addPoints(paths.paths);
   
   // Output SVG:
   var svg = simplifier.svgObjToSvg(paths);

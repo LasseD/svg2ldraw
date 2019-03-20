@@ -329,7 +329,8 @@ function convert_svg(svg) {
   chd.build();
   result.paths = chd.paths;
   
-
+  // Re-add points to avoid T-Junctions:
+  result.paths = tjHandler.addPoints(result.paths);
 
   // Colors:
   colorTransformation.transformPaths(result.paths, onColorMapped);

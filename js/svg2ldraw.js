@@ -73,8 +73,8 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
 	));
 	
 	try {
-            var clean = new UTIL.CH(pts, path.color, ((a,b) => a.dist(b) < SVG2LDRAW.MinDistDiff));
-            outputPath({pts:clean.pts.map(p => new UTIL.Point(-p.x, p.y)), lDrawColor:path.lDrawColor});
+            //var clean = new UTIL.CH(pts, path.color, ((a,b) => a.dist(b) < SVG2LDRAW.MinDistDiff));
+            outputPath({pts:pts.map(p => new UTIL.Point(-p.x, p.y)), lDrawColor:path.lDrawColor});
 	}
 	catch(exception) {
 	    //console.dir(exception);
