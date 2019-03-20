@@ -337,6 +337,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
             ret += 'Z" fill="' + path.color +'"/>\n';
         });
 
+    /*
     svgObj.paths.forEach(function(path) {
             ret += '\n';
             path.pts.forEach(function(p) {

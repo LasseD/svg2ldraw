@@ -6,7 +6,7 @@ svg2ldraw is a library for converting SVG files to LDraw. This can be used for p
 
 # Getting started 
 
-sample.htm provides an overview of basic functionality for developers. 
+test.htm provides an overview of basic functionality for developers. 
 
 index.htm contains the full app with the following steps and functionalities:
 

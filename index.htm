@@ -81,6 +81,7 @@
   <script src="js/path_simplification.js"></script>
   <script src="js/bezier_removal.js"></script>
   <script src="js/convex_hull_decomposition.js"></script>
+  <script src="js/tjunctions.js"></script>
   <script src="js/svg2ldraw.js"></script>
   
   <h1>svg2ldraw - Convert SVG Images to LDraw Patterns</h1>
@@ -315,6 +316,20 @@ function convert_svg(svg) {
       onWarning(i, "Error while constructing path. Path will be ignored. You can potentially avoid this by changing the settings of 'Points per 100 pixels'. Error message: " + exception);
     }
   }
+
+  // Add points to prevent T-sections and to be able to combine paths:
+  var tjHandler = new UTIL.TJunctionHandler();
+  result.paths = tjHandler.addPoints(result.paths);
+
+  // Combine paths:
+  result.paths = UTIL.combinePaths(result.paths);
+
+  // Ensure all paths are convex:
+  var chd = new UTIL.ConvexHullDecomposition(result.paths, onWarning);
+  chd.build();
+  result.paths = chd.paths;
+  
+
 
   // Colors:
   colorTransformation.transformPaths(result.paths, onColorMapped);

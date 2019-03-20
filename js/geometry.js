@@ -176,7 +176,7 @@ UTIL.removeInlinePoints = function(pts, pointsEqual) {
     }
     pointsEqual = pointsEqual || ((a, b) => a.equals(b));
 
-    // Find index of min-point, as it is guaranteed not to be removed:
+    // Find index of min-point, as it is (almost) guaranteed not to be removed (if neighbours of min-point are inline, then min can be removed!):
     var iMin = 0, min = pts[0];
     for(var i = 0; i < pts.length; i++) {
         const p = pts[i];
@@ -186,22 +186,31 @@ UTIL.removeInlinePoints = function(pts, pointsEqual) {
         }
     }
 
-    var prev = min, first = min, next = pts[(iMin+1)%pts.length];
-    var ret = [min];
-    for(var i = 2; i <= pts.length; i++) { // Add remaining points:
-        var p = next;
-        next = pts[(i+iMin)%pts.length];
+    var prev = pts[(iMin+pts.length-1)%pts.length], p = min, next = pts[(iMin+1)%pts.length];
+    if(UTIL.noTurn(prev, p, next)) {
+        // Remove min!
+        var ptsNoMin = pts.slice(0, iMin);
+        ptsNoMin.push(...pts.slice(iMin+1));
+        return UTIL.removeInlinePoints(ptsNoMin, pointsEqual); // TODO: Test this!
+    }
 
-        if(pointsEqual(p, prev) || pointsEqual(p, first)) {// || pointsEqual(p, next)) {
-            //console.warn("Removing duplicate on position " + idx + ": " + p.x + ", " + p.y + ' vs ' + prev.x + ', ' + prev.y + ', dist: ' + p.dist(prev));
+    var ret = [min]; // Min-point is included.
+    for(var i = 0; i < pts.length-1; i++) { // Add remaining points:
+        prev = p;
+        p = next;
+        next = pts[(2+i+iMin)%pts.length];
+
+        if(pointsEqual(p, prev) || pointsEqual(p, next)) {
+            //console.warn("Removing duplicate on position " + i + ": " + p.x + ", " + p.y + ' vs ' + prev.x + ', ' + prev.y + ', dist: ' + p.dist(prev));
+            p = prev; // Ignore this point.
             continue; // Duplicate
         }
         if(UTIL.noTurn(prev, p, next)) {
-            //console.warn("Removing inline point on position " + idx + ": " + p.x + ", " + p.y);
+            //console.warn("Removing inline point on position " + i + ": " + p.x + ", " + p.y);
+            p = prev; // Ignore this point.
             continue; // Inline
         }
-        ret.push(p);
-        prev = p;
+        ret.push(p); // OK.
     }
     return ret;
 }
@@ -592,7 +601,6 @@ UTIL.Path.prototype.indexOf = function(p) {
   p1 p4+1 P4+2 ... p3-1 p2 p2+1 ... p1-1
  */
 UTIL.combinePaths = function(paths) {
-    console.log('COMBINING PATHS'); console.dir(paths);
     paths.forEach(function(path, pathIdx) {path.idx = pathIdx; path.events = [];});
 
     var S = []; // Events e={p, color, path}. Order by p.x, p.y, color, path.idx
@@ -620,6 +628,8 @@ UTIL.combinePaths = function(paths) {
             var p1Idx = (p2Idx+P1.pts.length-1) % P1.pts.length;
             var p4Idx = (p3Idx+1) % P2.pts.length;
             if(P1.pts[p1Idx].equals(P2.pts[p4Idx])) { // Overlapping line segments: Combine paths.
+                //console.log('Merging paths ' + P1.idx + ' and ' + P2.idx); console.dir(P1.pts); console.dir(P2.pts); console.dir(s.p);
+
                 // New path points:   p1 p4+1 P4+2 ... p3-1 p2 p2+1 ... p1-1
                 var pts = [ P1.pts[p1Idx] ]; // p1
                 var idx = (p4Idx+1)%P2.pts.length; // p4+1
@@ -639,6 +649,7 @@ UTIL.combinePaths = function(paths) {
                         idx = 0;
                     }
                 }
+                //console.log('RESULT'); console.dir(pts);
 
                 P2.events.forEach(e => e.path = P1);
                 P1.pts = pts;
