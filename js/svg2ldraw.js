@@ -1,9 +1,9 @@
 'use strict';
 
 var SVG2LDRAW = {};
-SVG2LDRAW.Precision = 4; // Used for outputting to LDraw
-SVG2LDRAW.PrecisionMult = 10000;
-SVG2LDRAW.MinDistDiff = 0.0002;
+SVG2LDRAW.Precision = 3; // Used for outputting to LDraw
+SVG2LDRAW.PrecisionMult = 1000;
+SVG2LDRAW.MinDistDiff = 0.002;
 
 /*
   The purpose of this library is to performs SVG to LDraw pattern transformation.
