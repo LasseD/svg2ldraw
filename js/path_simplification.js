@@ -67,7 +67,7 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
 }
 
 UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
-    console.log('simplifying');
+    console.log('simplifying for ' + this.pointsPerPixel + ' ppp');
     var a = svg.attributes;
     if(!a) {
         onError('Invalid SVG file: Missing attributes in svg node!');
@@ -446,7 +446,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
 UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, color, transformation) {
     var a = path.attributes;
     var d = a.d.value;
-    var tokens = d.match(/[a-zA-Z]+|\-?[0-9\.]+/gi);
+    var tokens = d.match(/[a-zA-Z]+|\-?[0-9]*\.?[0-9]+/gi);
     var x = 0, y = 0; // Current position.
     var p = []; // Current path.
 
@@ -497,17 +497,15 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         case 'm': // Move to relative
 	    cmd = (cmd === 'M' ? 'L' : 'l'); // Line-to commands are implicit after move
             closePath();
-            x = x+Number(tokens[++i]);
-            y = y+Number(tokens[++i]);
+            x += Number(tokens[++i]);
+            y += Number(tokens[++i]);
             push();
             break;
         case 'Z': // End 
         case 'z': // End
-            if(p.length === 0)
-                break;
-            x = p[0].x;
-            y = p[0].y;
-            closePath();
+            if(p.length !== 0) {
+		closePath();
+	    }
             break;
         case 'L': // Line to absolute
             x = y = 0;

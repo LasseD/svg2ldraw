@@ -11,7 +11,7 @@ UTIL.BezierRemover.prototype.handleCurve = function(x0, y0, x1, y1, x2, y2, x3, 
     var dx = x0-x3, dy = y0-y3;
     var curveLength = Math.sqrt(dx*dx + dy*dy);
     var pointsPerCurve = Math.min(UTIL.MaxPointsPerCurve, Math.ceil(curveLength*this.pointsPerPixel));
-    //console.log("Drawing " + pointsPerCurve + " points on curve of length " + curveLength);
+    //console.log("Drawing " + pointsPerCurve + " points on curve of length " + curveLength + ' params: ' + x0+', '+y0+', '+x1+', '+y1+', '+x2+', '+y2+', '+x3+', '+y3);
     var ret = [];
     for(var i = 0; i < pointsPerCurve; i++) {
         var t = (i+1)/pointsPerCurve, t2 = t*t, t3 = t2*t;

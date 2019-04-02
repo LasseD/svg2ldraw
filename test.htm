@@ -18,7 +18,7 @@
 
   <h3>SVG to Convert</h3>
   <object id="svg_container" 
-data="sample_files/wec.svg"
+data="sample_files/24h.svg"
 type="image/svg+xml"></object>
   <pre id="svg_content"></pre>
 
@@ -44,7 +44,7 @@ function convert_svg() {
   var svg = document.getElementById('svg_container').contentDocument.firstElementChild;
 
   // Simplify:
-  var simplifier = new UTIL.PathSimplification(0.025, onWarning, onError);
+  var simplifier = new UTIL.PathSimplification(0.02, onWarning, onError);
   var simplifiedPaths = simplifier.simplifySvgDom(svg);
 
   // Remove overlapping geometries:
