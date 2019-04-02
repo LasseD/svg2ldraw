@@ -16,6 +16,8 @@ UTIL.isZero = function(x) {
   - CH (Convex hull)
  */
 UTIL.Point = function(x, y) {
+    if(isNaN(x) || isNaN(y))
+	throw "NaN! " + x + " " + y;
     this.x = x;
     this.y = y;
 }
