@@ -10,6 +10,8 @@ UTIL.PathSimplification = function(pointsPerPixel, onWarning, onError) {
 
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
     this.groups = {}; // id -> group
+    this.styleClasses = {} // class name -> fill
+    this.idToStyleClass = {}; // referencing id -> style class name
 
     this.nodeHandlers = {
         circle: this.handleSvgCircle,
@@ -19,7 +21,9 @@ UTIL.PathSimplification = function(pointsPerPixel, onWarning, onError) {
         metadata: x => {}, // Ignore 'metadata' nodes.
         path: this.handleSvgPath,
         polygon: this.handleSvgPolygon,
-        rect: this.handleSvgRect
+        rect: this.handleSvgRect,
+        style: this.handleStyle,
+        linearGradient: this.handleLinearGradient
     };
 }
 
@@ -63,33 +67,47 @@ UTIL.PathSimplification.prototype.simplifySvg = function(svgAsText) {
 }
 
 UTIL.PathSimplification.prototype.simplifySvgDom = function(svg) {
+    console.log('simplifying');
     var a = svg.attributes;
-    if(!a || (a.width === undefined) || (a.height === undefined)) {
-        onError('Invalid SVG file: Missing attributes!');
+    if(!a) {
+        onError('Invalid SVG file: Missing attributes in svg node!');
         return; // Invalid SVG file.
     }
 
-    var w = parseFloat(a.width.value);
-    var h = parseFloat(a.height.value);
-    
-    var svgObj = {width: w, height: h, viewBox:{x:0,y:0,width:w,height:h}, paths: []};
+    var paths = [];
     for(var i = 0; i < svg.children.length; i++) {
         var child = svg.children[i];
-        this.handleSvgNode(child, svgObj.paths, '#000000', p => p);
+        this.handleSvgNode(child, paths, '#000000', p => p);
+    }
+
+    var w, h, vb;
+    if(a.width === undefined || a.height === undefined) {
+        if(!a.viewBox) {
+            onError('SVG missing viewBox and width/height!');
+            return; // Invalid SVG file.
+        }
+        vb = a.viewBox.value.split(' ').map(x => parseFloat(x));
+        w = 400; // Hard coded.
+        h = w * vb[3] / vb[2]; // Scale to width.
+    }
+    else {
+        w = parseFloat(a.width.value);
+        h = parseFloat(a.height.value);        
     }
 
     if(a.viewBox) {
-        var vb = a.viewBox.value.split(' ').map(x => parseFloat(x));
+        vb = vb || a.viewBox.value.split(' ').map(x => parseFloat(x));
         var dx = scaleW = w / vb[2];
         var dy = scaleH = h / vb[3];
-
+        
         var applyViewBox = function(p) {
             p.x = (p.x-vb[0])*scaleW;
             p.y = (p.y-vb[1])*scaleH;
         }
-        svgObj.paths.forEach(path => path.pts.forEach(applyViewBox));
+        paths.forEach(path => path.pts.forEach(applyViewBox));
     }
-
+    
+    var svgObj = {width: w, height: h, viewBox:{x:0,y:0,width:w,height:h}, paths:paths};
     return svgObj;
 }
 
@@ -97,6 +115,12 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
     // Fill color: 'style' takes precedence over 'fill'. Both overwrite inherited value.
     var a = node.attributes;
     if(a) {
+        if(node.attributes['class']) {
+            var className = node.attributes['class'].value;
+            if(this.styleClasses.hasOwnProperty(className)) {
+                fill = this.styleClasses[className];
+            }
+        }
         if(node.attributes.fill) {
             fill = node.attributes.fill.value;
         }
@@ -107,7 +131,7 @@ UTIL.PathSimplification.prototype.handleSvgNode = function(node, output, fill, t
                 fill = fillMatches[1];
             }
         }
-        if(fill == 'none') {
+        if(fill === 'none') {
             this.onWarning('fill_none', 'fill:none; is not yet supported. SVG elements with this property will be ignored.');
             return;
         }
@@ -140,10 +164,71 @@ UTIL.PathSimplification.prototype.getTransformation = function(txt, baseTransfor
             return baseTransformation(new UTIL.Point(x, y));
         };
     }
+    else if(txt.startsWith('scale(')) {
+        const a = txt.substring(10).split(/[\,\s]+/).map(x => parseFloat(x));
+        return function(p) {
+            var x = p.x*a[0];
+            var y = p.y*a[1];
+            return baseTransformation(new UTIL.Point(x, y));
+        };
+    }
     else {
-        this.onWarning(tVal, 'Unsupported transformation "' + tVal + '". SVG groups with this type of transformation will be ignored.');
+        this.onWarning(txt, 'Unsupported transformation "' + txt + '". SVG groups with this type of transformation will be ignored.');
         return baseTransformation;
     }
+}
+
+UTIL.PathSimplification.prototype.handleStyle = function(g, outputPaths, fill, transformation) {
+    var content = g.innerHTML;
+    var match;
+    var re = /\.([a-zA-Z0-9\_]+)\{fill\:\s*(\#[0-9a-fA-F]+)\;/g;
+    while(match = re.exec(content)) {
+        var className = match[1];
+        var fill = match[2];
+        this.styleClasses[className] = fill;
+    }
+
+    //    re = /\.([a-zA-Z0-9\_]+)\{fill\:\s*url\(\#([0-9a-fA-F\_]+)\)/g;
+    re = /\.([a-zA-Z0-9\_]+)\{fill\:url\(\#([0-9a-zA-Z\_]+)\)/g;
+    while(match = re.exec(content)) {
+        var className = match[1];
+        var url = match[2];
+        this.idToStyleClass[url] = className;
+    }
+}
+
+UTIL.PathSimplification.prototype.handleLinearGradient = function(g, outputPaths, fill, transformation) {
+    var id = g.id;
+    if(!id) {
+        this.onWarning('linearGradientID', 'LinearGradient element without ID will be ignored.');
+        return;
+    }
+    var styleClassName = this.idToStyleClass[id];
+    if(!styleClassName) {
+        this.onWarning(styleClassName, 'Unknown style class name: "' + styleClassName + '". Skipping linearGradient element.');
+        return;
+    }
+
+    for(var i = 0; i < g.children.length; i++) {
+        var child = g.children[i];
+        if(child.nodeName === 'stop') {
+            var childA = child.attributes;
+            var childStyle = childA['style'];
+            if(!childStyle) {
+                this.onWarning('lg_style', 'Missing style attribute in linearGradient stop element. Element will be ignored.');
+                continue;
+            }
+            childStyle = childStyle.value;
+            if(childStyle.length !== 18) {
+                this.onWarning('lg_color', 'Expecting stop style of length 18. Element will be ignored.');
+                continue;
+            }
+            var c = childStyle.substring(11); // Expect value like 'stop-color:#05102E'
+            this.styleClasses[styleClassName] = c;
+            break; // No read to set the value multiple times.
+        }
+    }
+    // TODO: Proper handling of gradients.
 }
 
 UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill, transformation) {
@@ -160,7 +245,7 @@ UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill
     }
     for(var i = 0; i < g.children.length; i++) {
         var child = g.children[i];
-        if(child.nodeName == 'use') {
+        if(child.nodeName === 'use') {
             var childA = child.attributes;
             var ref = childA['xlink:href'];
             if(!ref) {
@@ -207,7 +292,7 @@ UTIL.PathSimplification.prototype.handleSvgDefs = function(g, outputPaths, fill,
 
     for(var i = 0; i < g.children.length; i++) {
         var child = g.children[i];
-        if(child.nodeName == 'use') {
+        if(child.nodeName === 'use') {
             var childA = child.attributes;
             var ref = childA['xlink:href'];
             if(!ref) {
@@ -320,7 +405,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
     ret += ' xmlns="http://www.w3.org/2000/svg">\n';
 
     function shorten(x) {
-        if(x == Math.floor(x))
+        if(x === Math.floor(x))
           return x;
         return x.toFixed(3);
     }
@@ -366,15 +451,17 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
     var p = []; // Current path.
 
     var group;
-    if(a.id)
+    if(a.id) {
         group = new UTIL.Group();
+    }
 
     function closePath() {
         if(p && p.length >= 3) {
             var path = new UTIL.Path(p, color);
             outputPaths.push(path);
-            if(group)
+            if(group) {
                 group.paths.push(path);
+            }
         }
         p = [];
     }
@@ -383,12 +470,13 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         if(p.length > 0) {
             var first = p[0];
             var last = p[p.length-1];
-            if(first.x == x && first.y == y)
+            if(first.x === x && first.y === y) {
                 return;
-            if(last.x == x && last.y == y)
+            }
+            if(last.x === x && last.y === y) {
                 return;
-        }
-        //console.warn("Transforming " + x + ", " + y + " -> " + transformation(new UTIL.Point(x,y)).x);
+            }
+        }        
         p.push(transformation(new UTIL.Point(x,y)));
     }
 
@@ -404,51 +492,57 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
 	}
 
         switch(cmd) {
-        case 'M':
+        case 'M': // Move to absolute
             x = y = 0;
-        case 'm':
-	    cmd = (cmd == 'M' ? 'L' : 'l'); // Line-to commands are implicit after move
+        case 'm': // Move to relative
+	    cmd = (cmd === 'M' ? 'L' : 'l'); // Line-to commands are implicit after move
             closePath();
             x = x+Number(tokens[++i]);
             y = y+Number(tokens[++i]);
             push();
             break;
-        case 'Z':
-        case 'z':
-            if(p.length == 0)
+        case 'Z': // End 
+        case 'z': // End
+            if(p.length === 0)
                 break;
             x = p[0].x;
             y = p[0].y;
             closePath();
             break;
-        case 'L':
+        case 'L': // Line to absolute
             x = y = 0;
-        case 'l':
+        case 'l': // Line to relative
             x = x+Number(tokens[++i]);
             y = y+Number(tokens[++i]);
-            if(x == p[0].x && y == p[0].y)
+            if(x === p[0].x && y === p[0].y) {
                 closePath();
+                push();
+            }
             push();
             break;
-        case 'H':
+        case 'H': // Line to horizontal absolute
             x = 0;
-        case 'h':
+        case 'h': // Line to horizontal relative
             x = x+Number(tokens[++i]);
-            if(x == p[0].x && y == p[0].y)
+            if(x === p[0].x && y === p[0].y) {
                 closePath();
+                push();
+            }
             push();
             break;
-        case 'V':
+        case 'V': // Line to vertical absolute
             y = 0;
-        case 'v':
+        case 'v': // Line to vertical relative
             y = y+Number(tokens[++i]);
-            if(x == p[0].x && y == p[0].y)
+            if(x === p[0].x && y === p[0].y) {
                 closePath();
+                push();
+            }
             push();
             break;
-        case 'C':
+        case 'C': // Bezier curve absolute
 	    x = y = 0;
-        case 'c':
+        case 'c': // Bezier curve relative
             x1 = x+Number(tokens[++i]);
             y1 = y+Number(tokens[++i]);
             x2 = x+Number(tokens[++i]);
@@ -463,13 +557,15 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             }
             x = x3;
             y = y3;
-            if(x == p[0].x && y == p[0].y)
+            if(x === p[0].x && y === p[0].y) {
                 closePath();
+                push();
+            }
             break;
-        case 'S':
+        case 'S': // Short Bezier curve absolute
 	    x = y = 0;
-        case 's':
-            if(prevCmd == 's' || prevCmd == 'S' || prevCmd == 'C' || prevCmd == 'c') {
+        case 's': // Short Bezier curve relative
+            if(prevCmd === 's' || prevCmd === 'S' || prevCmd === 'C' || prevCmd === 'c') {
                 x1 = x3 + (x3-x2);
                 y1 = y3 + (y3-y2);
             }
@@ -488,8 +584,10 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             }
             x = x3;
             y = y3;
-            if(x == p[0].x && y == p[0].y)
+            if(x === p[0].x && y === p[0].y) {
                 closePath();
+                push();
+            }
             break;
         default:
             this.onWarning(cmd, 'Unsupported path command "' + cmd + '". The path will be skipped.');
