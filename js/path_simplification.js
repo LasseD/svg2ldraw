@@ -39,6 +39,13 @@ UTIL.Group = function(transform) {
     this.transform = transform || function(x){return x;};
 }
 
+UTIL.Group.prototype.clone = function() {
+    var ret = new UTIL.Group(this.transform);
+    ret.refs = this.refs;
+    ret.paths.push(...this.paths.map(path => path.clone()));
+    return ret;
+}
+
 UTIL.Group.prototype.output = function(outputPaths, transform) {
     var self = this;
     var t = function(p) {
@@ -247,9 +254,9 @@ UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill
         var child = g.children[i];
         if(child.nodeName === 'use') {
             var childA = child.attributes;
-            var ref = childA['xlink:href'];
+            var ref = childA['xlink:href'] || childA['href'];
             if(!ref) {
-                this.onWarning('xlink:href', 'Missing xlink:href attribute in "use" element. Output for this will be skipped.');
+                this.onWarning('href', 'Missing xlink:href or href attribute in "use" element. Output for this will be skipped.');
                 continue;
             }
             ref = ref.value.substring(1);
@@ -257,7 +264,11 @@ UTIL.PathSimplification.prototype.handleSvgGroup = function(g, outputPaths, fill
                 this.onWarning(ref, 'Unknown ID: "' + ref + '". Skipping "use" element.');
                 continue;
             }
-            ref = this.groups[ref];
+            ref = this.groups[ref].clone();
+	    if(childA.fill) {
+		var childFill = childA.fill.value;
+		ref.paths.forEach(path => path.color = childFill);
+	    }
 
             // Transform:
             const x = childA.x ? parseFloat(childA.x.value) : 0;
@@ -365,7 +376,7 @@ UTIL.PathSimplification.prototype.handleSvgCircle = function(c, outputPaths, col
     var r = parseFloat(a.r.value);
 
     var points = [];
-    var pointsPerCircle = Math.max(3, Math.floor(this.pointsPerPixel * Math.PI * 2 * r));
+    var pointsPerCircle = Math.max(5, Math.floor(this.pointsPerPixel * Math.PI * 2 * r));
     for(var i = 0; i < pointsPerCircle; i++) {
         var angle = Math.PI*2*i/pointsPerCircle;
         points.push(new UTIL.Point(cx+Math.cos(angle)*r, cy+Math.sin(angle)*r));

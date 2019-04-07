@@ -22,6 +22,10 @@ UTIL.Point = function(x, y) {
     this.y = y;
 }
 
+UTIL.Point.prototype.clone = function() {
+    return new UTIL.Point(this.x, this.y);
+}
+
 UTIL.Point.prototype.toSvg = function(color) {
     return '--><circle ' + (color?'fill="'+color+'"':'') +' r="1" cx="' + this.x + '" cy="' + this.y + '"/><!--';
 }
@@ -576,6 +580,10 @@ UTIL.orderPathsClockwise = function(paths) {
 UTIL.Path = function(pts, color) {
     this.pts = pts;
     this.color = color;
+}
+
+UTIL.Path.prototype.clone = function() {
+    return new UTIL.Path(this.pts.map(p => p.clone()), this.color);
 }
 
 UTIL.Path.prototype.toSvg = function() {
