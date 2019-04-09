@@ -26,8 +26,8 @@ UTIL.Point.prototype.clone = function() {
     return new UTIL.Point(this.x, this.y);
 }
 
-UTIL.Point.prototype.toSvg = function(color) {
-    return '--><circle ' + (color?'fill="'+color+'"':'') +' r="1" cx="' + this.x + '" cy="' + this.y + '"/><!--';
+UTIL.Point.prototype.toSvg = function(color, radius) {
+    return '--><circle ' + (color?'fill="'+color+'"':'') +' r="' + (radius || 1) + '" cx="' + this.x + '" cy="' + this.y + '"/><!--';
 }
 
 UTIL.Point.prototype.equals = function(other) {
@@ -357,6 +357,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     function push(pts) {
         try {
             ret.push(new UTIL.CH(pts, color));
+            //console.log('Split into ' + new UTIL.CH(pts, color).toSvg());
         }
         catch(exception) {
             console.warn('Failed to create convex hull from points:');
@@ -536,7 +537,7 @@ UTIL.cut = function(as, bs) {
         for(var i = 0; i < as.length; i++) {
             var a = as[i];
             if(a.isInside(pointInside)) {
-                //console.log("Skip: " + b.toSvg() + " inside of " + a.toSvg());
+                //console.log("Skip overlap: " + b.toSvg() + " inside of " + a.toSvg());
                 return false;
             }
         }
@@ -591,6 +592,7 @@ UTIL.Path.prototype.toSvg = function() {
 
     this.pts.forEach(p => ret += " " + p.x + "," + p.y);
     ret += 'Z"/>';
+    this.pts.forEach((p,idx) => ret += p.toSvg(idx < 10 ? ('#F0' + idx) : '#F' + idx, 5));
     return ret;
 }
 

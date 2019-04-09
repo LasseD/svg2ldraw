@@ -46,7 +46,7 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
                 if(p.equals(p0) || p.equals(p1) || p.equals(p2)) {
                     continue; // Own points
                 }
-                if(triangle.isOnOrInside(p)) {
+                if(triangle.isInside(p)) {
                     //console.log(p.x + ', ' + p.y + ' is inside from position ' + i);
                     return false;
                 }
@@ -81,6 +81,7 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
                 }
                 if(i0 === start) {
                     console.dir(pts);
+                    pts.forEach(p => console.log(p.toSvg('#F00', 5)));
                     self.onWarning('non-consuming', "No convex non-consuming tripplet on path: " + path.toSvg());
                     return; // No output.
                 }
@@ -136,6 +137,7 @@ UTIL.ConvexHullDecomposition.prototype.build = function() {
             }
         }
     }
+
     this.paths.forEach(handlePath);
 
     this.paths = hulls;
