@@ -9,6 +9,7 @@ UTIL.PathSimplification = function(pointsPerPixel, onWarning, onError) {
     this.onError = onError;
 
     this.bezierRemover = new UTIL.BezierRemover(pointsPerPixel);
+    this.arcRemover = new UTIL.ArcRemover(pointsPerPixel);
     this.groups = {}; // id -> group
     this.styleClasses = {} // class name -> fill
     this.idToStyleClass = {}; // referencing id -> style class name
@@ -458,6 +459,9 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
     var a = path.attributes;
     var d = a.d.value;
     var tokens = d.match(/[a-zA-Z]+|\-?[0-9]*\.?[0-9]+/gi);
+    if(!tokens) {
+        return; // Empty path.
+    }
     var x = 0, y = 0; // Current position.
     var p = []; // Current path.
 
@@ -473,6 +477,8 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             if(group) {
                 group.paths.push(path);
             }
+            x = p[0].x;
+            y = p[0].y;
         }
         p = [];
     }
@@ -510,13 +516,12 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             closePath();
             x += Number(tokens[++i]);
             y += Number(tokens[++i]);
+            //if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
             push();
             break;
         case 'Z': // End 
         case 'z': // End
-            if(p.length !== 0) {
-		closePath();
-	    }
+            closePath();
             break;
         case 'L': // Line to absolute
             x = y = 0;
@@ -559,11 +564,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             x3 = x+Number(tokens[++i]);
             y3 = y+Number(tokens[++i]);
             var curvePoints = this.bezierRemover.handleCurve(x0, y0, x1, y1, x2, y2, x3, y3);
-            for(var k = 0; k < curvePoints.length; k++) {
-                x = curvePoints[k].x;
-                y = curvePoints[k].y;
-                push();
-            }
+            curvePoints.forEach(p => {x=p.x; y=p.y; push();});
             x = x3;
             y = y3;
             if(x === p[0].x && y === p[0].y) {
@@ -586,17 +587,29 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             x3 = x+Number(tokens[++i]);
             y3 = y+Number(tokens[++i]);
             var curvePoints = this.bezierRemover.handleCurve(x0, y0, x1, y1, x2, y2, x3, y3);
-            for(var k = 0; k < curvePoints.length; k++) {
-                x = curvePoints[k].x;
-                y = curvePoints[k].y;
-                push();
-            }
+            curvePoints.forEach(p => {x=p.x; y=p.y; push();});
             x = x3;
             y = y3;
             if(x === p[0].x && y === p[0].y) {
                 closePath();
                 push();
             }
+            break;
+        case 'A':
+            x = y = 0;
+        case 'a':
+            var rx = Number(tokens[++i]);
+            var ry = Number(tokens[++i]);
+            var xAxisRotation = Math.PI*2/360*Number(tokens[++i]);
+            var largeArcFlag = tokens[++i] === '1';
+            var sweepFlag = tokens[++i] === '1';
+            x1 = x+Number(tokens[++i]);
+            y1 = y+Number(tokens[++i]);
+
+            var curvePoints = this.arcRemover.handle(x0, y0, rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x1, y1);
+            curvePoints.forEach(p => {x=p.x; y=p.y; push();});
+            x = x1;
+            y = y1;
             break;
         default:
             this.onWarning(cmd, 'Unsupported path command "' + cmd + '". The path will be skipped.');
