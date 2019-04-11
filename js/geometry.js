@@ -4,7 +4,7 @@ var UTIL = {};
 UTIL.EPSILON = 1e-7; // Used for epsilon-comparisons for equality.
 
 UTIL.isZero = function(x) {
-    return x >= -UTIL.EPSILON && x <= UTIL.EPSILON;;
+    return x >= -UTIL.EPSILON && x <= UTIL.EPSILON;
 }
 
 /*
@@ -16,8 +16,9 @@ UTIL.isZero = function(x) {
   - CH (Convex hull)
  */
 UTIL.Point = function(x, y) {
-    if(isNaN(x) || isNaN(y))
-	throw "NaN! " + x + " " + y;
+    if(isNaN(x) || isNaN(y)) {
+	throw "NaN is not a valid coordinate! " + x + " " + y;
+    }
     this.x = x;
     this.y = y;
 }
