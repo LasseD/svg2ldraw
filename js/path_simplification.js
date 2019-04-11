@@ -458,7 +458,7 @@ UTIL.PathSimplification.prototype.svgObjToSvg = function(svgObj) {
 UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, color, transformation) {
     var a = path.attributes;
     var d = a.d.value;
-    var tokens = d.match(/[a-zA-Z]+|\-?[0-9]*\.?[0-9]+/gi);
+    var tokens = d.match(/[a-zA-Z]|\-?[0-9]*\.?[0-9]+/gi);
     if(!tokens) {
         return; // Empty path.
     }
@@ -516,7 +516,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             closePath();
             x += Number(tokens[++i]);
             y += Number(tokens[++i]);
-            //if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
+            if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
             push();
             break;
         case 'Z': // End 
