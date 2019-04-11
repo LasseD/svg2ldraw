@@ -463,7 +463,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
         return; // Empty path.
     }
     var x = 0, y = 0; // Current position.
-    var p = []; // Current path.
+    var p = []; // Current path of UTIL.Point objects..
 
     var group;
     if(a.id) {
@@ -484,17 +484,18 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
     }
 
     function push() {
+        var newPoint = new UTIL.Point(x,y);
         if(p.length > 0) {
             var first = p[0];
             var last = p[p.length-1];
-            if(first.x === x && first.y === y) {
+            if(first.equals(newPoint)) {
                 return;
             }
-            if(last.x === x && last.y === y) {
+            if(last.equals(newPoint)) {
                 return;
             }
-        }        
-        p.push(transformation(new UTIL.Point(x,y)));
+        }
+        p.push(transformation(newPoint));
     }
 
     var x0, y0, x1, y1, x2, y2, x3, y3, p0, p1, p2, p3;
@@ -516,7 +517,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             closePath();
             x += Number(tokens[++i]);
             y += Number(tokens[++i]);
-            if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
+            //if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
             push();
             break;
         case 'Z': // End 
