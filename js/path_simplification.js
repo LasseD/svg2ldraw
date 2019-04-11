@@ -484,7 +484,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
     }
 
     function push() {
-        var newPoint = new UTIL.Point(x,y);
+        var newPoint = transformation(new UTIL.Point(x,y));
         if(p.length > 0) {
             var first = p[0];
             var last = p[p.length-1];
@@ -495,7 +495,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
                 return;
             }
         }
-        p.push(transformation(newPoint));
+        p.push(newPoint);
     }
 
     var x0, y0, x1, y1, x2, y2, x3, y3, p0, p1, p2, p3;
@@ -509,51 +509,41 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
 	    i--;
 	}
 
+        var checkClosure = true;
         switch(cmd) {
         case 'M': // Move to absolute
+            closePath();
             x = y = 0;
         case 'm': // Move to relative
-	    cmd = (cmd === 'M' ? 'L' : 'l'); // Line-to commands are implicit after move
             closePath();
+	    cmd = (cmd === 'M' ? 'L' : 'l'); // Line-to commands are implicit after move
+
             x += Number(tokens[++i]);
             y += Number(tokens[++i]);
             //if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
             push();
+            checkClosure = false;
             break;
         case 'Z': // End 
         case 'z': // End
             closePath();
+            checkClosure = false;
             break;
         case 'L': // Line to absolute
             x = y = 0;
         case 'l': // Line to relative
             x = x+Number(tokens[++i]);
             y = y+Number(tokens[++i]);
-            if(x === p[0].x && y === p[0].y) {
-                closePath();
-                push();
-            }
-            push();
             break;
         case 'H': // Line to horizontal absolute
             x = 0;
         case 'h': // Line to horizontal relative
             x = x+Number(tokens[++i]);
-            if(x === p[0].x && y === p[0].y) {
-                closePath();
-                push();
-            }
-            push();
             break;
         case 'V': // Line to vertical absolute
             y = 0;
         case 'v': // Line to vertical relative
             y = y+Number(tokens[++i]);
-            if(x === p[0].x && y === p[0].y) {
-                closePath();
-                push();
-            }
-            push();
             break;
         case 'C': // Bezier curve absolute
 	    x = y = 0;
@@ -568,10 +558,6 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             curvePoints.forEach(p => {x=p.x; y=p.y; push();});
             x = x3;
             y = y3;
-            if(x === p[0].x && y === p[0].y) {
-                closePath();
-                push();
-            }
             break;
         case 'S': // Short Bezier curve absolute
 	    x = y = 0;
@@ -591,10 +577,6 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             curvePoints.forEach(p => {x=p.x; y=p.y; push();});
             x = x3;
             y = y3;
-            if(x === p[0].x && y === p[0].y) {
-                closePath();
-                push();
-            }
             break;
         case 'A':
             x = y = 0;
@@ -616,6 +598,14 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
             this.onWarning(cmd, 'Unsupported path command "' + cmd + '". The path will be skipped.');
             return;
         }
+        if(checkClosure) {
+            if(transformation(new UTIL.Point(x,y)).equals(p[0])) {
+                closePath();
+                push();
+            }
+            push();
+        }
+
         prevCmd = cmd;
     }
     closePath();
