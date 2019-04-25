@@ -90,7 +90,7 @@
   <h3>Step 1 - SVG Image</h3>
   <div id="select_svg" class="section">
    <span class="desc">
-     Select the SVG image using either a URL, a file, or paste the content into the text area below
+     Select the SVG image using either a URL, a file, or paste the content into the text area below. See the tutorial <a href="https://www.youtube.com/watch?v=a5cWh3Fd668">here</a>.
    </span>
    <span class="choice">
     <label for="svg_url">URL from a website</label>
@@ -388,6 +388,7 @@ function readSvgFromUrl(event) {
     convert_svg(svgTxt);
   };
   req.open('GET', url, true);
+  req.setRequestHeader('Content-Type', 'application/xml');
   req.send();
 }
 
