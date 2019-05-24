@@ -116,11 +116,6 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
         outputQuad([minX, 0, maxY, minX, t, maxY, minX, t, minY, minX, 0, minY], false);
         outputQuad([maxX, 0, minY, maxX, t, minY, maxX, t, maxY, maxX, 0, maxY], false);
         // Lines above:
-        outputLine([maxX, 0, maxY, minX, 0, maxY]);
-        outputLine([minX, 0, maxY, minX, 0, minY]);
-        outputLine([minX, 0, minY, maxX, 0, minY]);
-        outputLine([maxX, 0, minY, maxX, 0, maxY]);
-        // Lines below:
         outputLine([maxX, t, maxY, minX, t, maxY]);
         outputLine([minX, t, maxY, minX, t, minY]);
         outputLine([minX, t, minY, maxX, t, minY]);

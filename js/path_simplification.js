@@ -520,7 +520,7 @@ UTIL.PathSimplification.prototype.handleSvgPath = function(path, outputPaths, co
 
             x += Number(tokens[++i]);
             y += Number(tokens[++i]);
-            //if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
+            if(cmd === 'l') { console.log('m' + tokens[i-1] + ',' + tokens[i] + ' -> ' + x + ',' + y); }
             push();
             checkClosure = false;
             break;
