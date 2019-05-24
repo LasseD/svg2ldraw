@@ -29,7 +29,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
         x = ((mid-x)*scale).toFixed(SVG2LDRAW.Precision);
         for(var i = 0; i < SVG2LDRAW.Precision; i++) {
             var tmp = parseFloat(x).toFixed(i);
-            if(parseFloat(tmp) == parseFloat(x)) {
+            if(parseFloat(tmp) === parseFloat(x)) {
                 return tmp; // Don't output too many '0's.
             }
         }
