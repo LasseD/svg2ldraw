@@ -36,7 +36,7 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
         return x;
     }
 
-    var reverse = (scaleW < 0) != (scaleH < 0);
+    var reverse = (scaleW < 0) !== (scaleH < 0);
 
     var cnt = 0;
     var ret = '0 Name: ' + (decomposition.name ? decomposition.name : 'INSERT_NAME_HERE');
@@ -45,52 +45,46 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
 0 !LICENSE Redistributable under CCAL version 2.0 : see CAreadme.txt
 0 BFC CERTIFY CCW
 `;
-    function outputPath(path) {
-        if(path.pts.length > 4) { // Extract a quad:
-            var path1 = {pts:path.pts.slice(0, 4), lDrawColor:path.lDrawColor};
-            var pts2 = [ path.pts[0] ];
-            pts2.push(...path.pts.slice(3));
-            var path2 = {pts:pts2, lDrawColor:path.lDrawColor};
-            outputPath(path1);
-            outputPath(path2);
+    function outputPath(pts, lDrawColor, y) {
+        if(pts.length > 4) { // Extract a quad:
+            var pts1 = pts.slice(0, 4);
+            var pts2 = [ pts[0] ];
+            pts2.push(...pts.slice(3));
+            outputPath(pts1, lDrawColor, y);
+            outputPath(pts2, lDrawColor, y);
             return;
         }
-        const pts = path.pts;
-        ret += pts.length + " " + path.lDrawColor;
+        ret += pts.length + " " + lDrawColor;
         for(var j = 0; j < pts.length; j++) {
             var k = reverse ? pts.length-1-j : j;
-            ret += " " + convert(pts[k].x, 0, -1) + " " + (-thickness) + " " + convert(pts[k].y, 0, -1);
+            ret += " " + convert(pts[k].x, midX, scaleW) + " " + y + " " + convert(pts[k].y, midY, scaleH);
         }
         ret += '\n';
         cnt++;
     }
 
-    var skipped = 0;
-    function handlePath(path) {
-        var pts = path.pts.map(p => new UTIL.Point(
-	    Math.round((midX-p.x)*scaleW*SVG2LDRAW.PrecisionMult)/SVG2LDRAW.PrecisionMult,
-	    Math.round((midY-p.y)*scaleH*SVG2LDRAW.PrecisionMult)/SVG2LDRAW.PrecisionMult
+    function scalePoints(pts) {
+        return pts.map(p => new UTIL.Point(
+	    Math.round((maxX-p.x)*SVG2LDRAW.PrecisionMult)/SVG2LDRAW.PrecisionMult,
+	    Math.round(p.y*SVG2LDRAW.PrecisionMult)/SVG2LDRAW.PrecisionMult
 	));
-	
-	try {
-            //var clean = new UTIL.CH(pts, path.color, ((a,b) => a.dist(b) < SVG2LDRAW.MinDistDiff));
-            outputPath({pts:pts.map(p => new UTIL.Point(-p.x, p.y)), lDrawColor:path.lDrawColor});
-	}
-	catch(exception) {
-	    //console.dir(exception);
-            skipped++;
-        }        
     }
+    decomposition.paths.forEach(path => path.pts = scalePoints(path.pts));
 
-    decomposition.paths.forEach(handlePath);
+    let allPoints = [];
+    decomposition.paths.forEach(path => allPoints.push(...path.pts));
+    decomposition.paths.forEach(path => outputPath(path.pts, path.lDrawColor, -thickness));
 
-    // `Add box if thickness > 0:
+    // Add box if thickness > 0:
     if(thickness > 0) {
-        console.log('Adding box due to thickness being ' + thickness);
-        minX = convert(minX, midX, -scaleW);
-        maxX = convert(maxX, midX, -scaleW);
-        minY = convert(minY, midY, scaleH);
-        maxY = convert(maxY, midY, scaleH);
+        let ch = new UTIL.GeneralConvexHull(allPoints);
+
+        let pts = ch.points.map(p => {return {x:convert(p.x, midX, scaleW),
+                                              y:convert(p.y, midY, scaleH)};});
+        let prev = pts[pts.length-1];
+        let segments = [];
+        pts.forEach(p => {segments.push({p1:prev, p2:p}); prev = p;});
+
         var t = -thickness;
         function outputLine(coords) {
             ret += "2 24";
@@ -101,39 +95,22 @@ SVG2LDRAW.Svg.prototype.toLDraw = function(decomposition, scaleW, scaleH, thickn
             ret += "4 " + c;
             coords.forEach(coord => ret += " " + coord);
             ret += '\n';
-            if(andLines) {
-                outputLine([coords[0], coords[1], coords[2], coords[3], coords[4], coords[5]]);
-                outputLine([coords[3], coords[4], coords[5], coords[6], coords[7], coords[8]]);
-                outputLine([coords[6], coords[7], coords[8], coords[9], coords[10], coords[11]]);
-                outputLine([coords[9], coords[10], coords[11], coords[0], coords[1], coords[2]]);
-            }
+            cnt++;
         }
-        // Below:
-        outputQuad([maxX, 0, maxY, minX, 0, maxY, minX, 0, minY, maxX, 0, minY], true);
-        // 4 sides:
-        outputQuad([minX, 0, minY, minX, t, minY, maxX, t, minY, maxX, 0, minY], false);
-        outputQuad([maxX, 0, maxY, maxX, t, maxY, minX, t, maxY, minX, 0, maxY], false);
-        outputQuad([minX, 0, maxY, minX, t, maxY, minX, t, minY, minX, 0, minY], false);
-        outputQuad([maxX, 0, minY, maxX, t, minY, maxX, t, maxY, maxX, 0, maxY], false);
-        // Lines above:
-        outputLine([maxX, 0, maxY, minX, 0, maxY]);
-        outputLine([minX, 0, maxY, minX, 0, minY]);
-        outputLine([minX, 0, minY, maxX, 0, minY]);
-        outputLine([maxX, 0, minY, maxX, 0, maxY]);
-        // Lines below:
-        outputLine([maxX, t, maxY, minX, t, maxY]);
-        outputLine([minX, t, maxY, minX, t, minY]);
-        outputLine([minX, t, minY, maxX, t, minY]);
-        outputLine([maxX, t, minY, maxX, t, maxY]);
-        // Lines on sides
-        outputLine([maxX, 0, maxY, maxX, t, maxY]);
-        outputLine([minX, 0, maxY, minX, t, maxY]);
-        outputLine([minX, 0, minY, minX, t, minY]);
-        outputLine([maxX, 0, minY, maxX, t, minY]);
 
-        cnt += 5;
+        //reverse = !reverse;
+        // Sides:
+        segments.forEach(line => outputQuad([line.p1.x, 0, line.p1.y, line.p1.x, t, line.p1.y,
+                                             line.p2.x, t, line.p2.y, line.p2.x, 0, line.p2.y]));
+        // Lines above:
+        segments.forEach(line => outputLine([line.p1.x, 0, line.p1.y, line.p2.x, 0, line.p2.y]));
+        // Lines below:
+        segments.forEach(line => outputLine([line.p1.x, t, line.p1.y, line.p2.x, t, line.p2.y]));
+        // Lines on sides
+        segments.forEach(line => outputLine([line.p1.x, 0, line.p1.y, line.p1.x, t, line.p1.y]));
+        // Below:
+        outputPath(ch.points, c, 0);
     }
 
-    console.log('Built lDraw file from ' + cnt + ' triangles and quads. ' + skipped + ' skipped.');
     return ret;
 }

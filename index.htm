@@ -74,6 +74,8 @@
     </style>
  </head>
  <body>
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
   <script src="js/jquery.min.js"></script>
   <script src="js/colors.js"></script>
   <script src="js/geometry.js"></script>
@@ -83,6 +85,13 @@
   <script src="js/arc_removal.js"></script>
   <script src="js/convex_hull_decomposition.js"></script>
   <script src="js/tjunctions.js"></script>
+  <!-- 3D Visualization: -->
+  <script src="js/LDROptions.js"></script>
+  <script src="js/LDRShaders.js"></script>
+  <script src="js/LDRColorMaterials.js"></script>
+  <script src="js/LDRGeometries.js"></script>
+  <script src="js/LDRLoader.js"></script>
+  <!-- Main svg2ldraw functions: -->
   <script src="js/svg2ldraw.js"></script>
   
   <h1>svg2ldraw - Convert SVG Images to LDraw Patterns</h1>
@@ -146,8 +155,8 @@
 
   <h3>Step 4 - Download LDraw File</h3>
   <div id="get_ldraw_file" class="section">
-   <div id="svg_ldraw">
-   </div>
+   <!--<div id="svg_ldraw"></div>-->
+   <div id="preview"></div>
    <span class="choice">
      <textarea id="ldraw_result" rows="10"></textarea>
      <button onclick="copyToClipboard();">Copy LDraw File to Clipboard</button>
@@ -338,7 +347,7 @@ function convert_svg(svg) {
   colorTransformation.transform('Box color', onColorMapped);
 
   // LDraw:
-  var thickness = parseFloat( $('#thickness')[0].value );
+  var thickness = parseFloat($('#thickness')[0].value);
   if(!(thickness > 0))
     thickness = 0;
   var lDrawContent = new SVG2LDRAW.Svg().toLDraw(result, scaleW, scaleH, thickness, colorTransformation.map['Box color'].id);
@@ -352,9 +361,10 @@ function convert_svg(svg) {
     simplified.width *= (maxH/simplified.height);
     simplified.height = maxH;
   }
-  var lDrawSvg = simplifier.svgObjToSvg(result);
+  //var lDrawSvg = simplifier.svgObjToSvg(result);
 
-  document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
+  showInScene(lDrawContent);
+  //document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
   $('#ldraw_result').val(lDrawContent);
 }
 
@@ -415,6 +425,79 @@ function setHeight() {
 function copyToClipboard() {
   $('#ldraw_result')[0].select();
   document.execCommand('copy');
+}
+
+/*
+  three.js rendering:
+ */
+var ldrOptions = new LDR.Options();
+
+// Set up camera:
+var camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000000);
+camera.position.set(10000, 7000, 10000);
+camera.lookAt(new THREE.Vector3());
+
+// Set up scene:
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xFFFFFF);
+//scene.add(new THREE.AxesHelper(10, 0xFF0000));
+var baseObject;
+
+// Set up renderer:
+var renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+function render() {
+  renderer.render(scene, camera);
+}
+
+var preview = document.getElementById('preview');
+preview.appendChild(renderer.domElement);
+
+var w, h;
+function onWindowResize(){
+  w = window.innerHeight * 0.7;
+  h = window.innerWidth * 0.7;
+  w = h = Math.min(w, h);
+  camera.left = -w;
+  camera.right = w;
+  camera.top = h;
+  camera.bottom = -h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  render();
+}
+window.addEventListener('resize', onWindowResize, false);
+onWindowResize();
+
+// React to user input:
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.addEventListener('change', render);
+
+function showInScene(ldr) {
+    var ldrLoader = new THREE.LDRLoader(()=>{}, null, {onError:onError, onWarning:onWarning});
+    ldrLoader.parse(ldr, 'main.dat');
+    if(!ldrLoader.mainModel) {
+      console.log('A valid model was not parsed. Nothing will be shown');
+      return;
+    }
+
+    if(baseObject) {
+      scene.remove(baseObject);
+    }
+    baseObject = new THREE.Group();
+    scene.add(baseObject);
+
+    var mc = new LDR.MeshCollector(baseObject, baseObject);
+    ldrLoader.generate(16, mc);
+
+    // Find center of drawn model:
+    var b = mc.boundingBox;
+    var elementCenter = new THREE.Vector3();
+    b.getCenter(elementCenter);
+    baseObject.position.set(-elementCenter.x, -elementCenter.y, -elementCenter.z);
+
+    camera.zoom = w/b.min.distanceTo(b.max)*2;
+    onWindowResize();
 }
   </script>
  </body>

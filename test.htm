@@ -19,7 +19,7 @@
 
   <h3>SVG to Convert</h3>
   <object id="svg_container" 
-data="sample_files/jake_copy.svg"
+data="sample_files/testc.svg"
 type="image/svg+xml"></object>
   <pre id="svg_content"></pre>
 
@@ -45,7 +45,7 @@ function convert_svg() {
   var svg = document.getElementById('svg_container').contentDocument.firstElementChild;
 
   // Simplify:
-  var simplifier = new UTIL.PathSimplification(0.02, onWarning, onError);
+  var simplifier = new UTIL.PathSimplification(0.3, onWarning, onError);
   var simplifiedPaths = simplifier.simplifySvgDom(svg);
 
   // Remove overlapping geometries:
@@ -92,11 +92,6 @@ function convert_svg() {
   document.getElementById('svg_ldraw').innerHTML = lDrawSvg;
   document.getElementById('ldraw_result').appendChild(document.createTextNode(lDrawContent));
 }
-/*
-CURRENT FAILURES:
-- corvette_flag (missing polygon)
-- 
- */
   </script>
  </body>
 </html>

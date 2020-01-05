@@ -43,6 +43,10 @@ UTIL.Point.prototype.add = function(p) {
     return new UTIL.Point(this.x+p.x, this.y+p.y);
 }
 
+UTIL.Point.prototype.flipY = function() {
+    return new UTIL.Point(this.x, -this.y);
+}
+
 UTIL.Point.prototype.dist = function(p) {
     const dx = this.x - p.x;
     const dy = this.y - p.y;
@@ -154,24 +158,10 @@ UTIL.lineSegmentsIntersect = function(l1, l2) {
        l1.lineIntersectsPoint(l2.p2) ||
        l2.lineIntersectsPoint(l1.p1) ||
        l2.lineIntersectsPoint(l1.p2)) {
-        return false;
+        return false; // End point intersection
     }
 
     return l1.leftTurn(l2.p1) !== l1.leftTurn(l2.p2) && l2.leftTurn(l1.p1) !== l2.leftTurn(l1.p2);
-}
-
-/*
-  Line segment represented by p1, p2.
- */
-UTIL.lineIntersectsLineSegment = function(l1, p1, p2) {
-    if(l1.isParallelWith(new UTIL.Line(p1, p2))) {
-        return false; // Parallel lines never intersect
-    }
-
-    if(l1.lineIntersectsPoint(p1) || l1.lineIntersectsPoint(p2)) {
-        return false; // Don't consider end point intersections.
-    }
-    return l1.leftTurn(p1) !== l1.leftTurn(p2);
 }
 
 UTIL.COLORS = ['#FBB', '#FBF', '#F00', '#0F0', '#00F', '#FF0', '#0FF', '#F0F', '#000', '#BFF'];
@@ -222,6 +212,9 @@ UTIL.removeInlinePoints = function(pts, pointsEqual) {
     return ret;
 }
 
+/*
+  Construct a CH from a path (pts).
+ */
 UTIL.CH = function(pts, color, pointsEqual) {
     this.pts = UTIL.removeInlinePoints(pts, pointsEqual);
 
@@ -307,8 +300,9 @@ UTIL.CH.prototype.isInside = function(pointInside) {
     var prev = this.pts[this.pts.length-1];
     for(var i = 0; i < this.pts.length; i++) {
         var p = this.pts[i];
-        if(!UTIL.rightTurn(prev, p, pointInside))
+        if(!UTIL.rightTurn(prev, p, pointInside)) {
             return false;
+        }
         prev = p;
     }
     return true;
@@ -397,12 +391,19 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         return;
     }
 
-    const lineIntersectionIndices = this.pts.map((p,idx,a) => 
-        UTIL.lineIntersectsLineSegment(line, p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
+    function linesIntersect(p1, p2) {
+        if(line.isParallelWith(new UTIL.Line(p1, p2))) {
+            return false; // Parallel lines never intersect
+        }
+        if(line.lineIntersectsPoint(p1) || line.lineIntersectsPoint(p2)) {
+            return false; // Don't consider end point intersections.
+        }
+        return line.leftTurn(p1) !== line.leftTurn(p2);
+    }
+    const lineIntersectionIndices = this.pts.map((p,idx,a) => linesIntersect(p, a[(idx+1)%a.length]) ? idx : -1).filter(x => x >= 0);
     if(lineIntersectionIndices.length > 2 || lineIntersectionIndices.length === 0) {
-        lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(
-                                                                                        this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
-        throw "Expected 1-2 CH/line intersections. Found " + lineIntersectionIndices.length + " intersections!";
+        lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
+        throw "Expected 1-2 CH/line intersections. Found " + lineIntersectionIndices.length + " intersections. Point intersections: " + pointIntersectionIndices.length;
     }
 
     if(pointIntersectionIndices.length === 1) { // Split in two with a single line split:
@@ -456,7 +457,7 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
         console.log(line.toSvg());
         lineIntersectionIndices.forEach(idx => console.log(line.getIntersectionWithLine(
                                this.pts[idx], this.pts[(idx+1)%this.pts.length]).toSvg('blue')));
-        throw "Expected 2 line intersections when 0 point intersections. Found: " + lineIntersectionIndices;
+        throw "Expected 2 line intersections when 0 points intersect. Found: " + lineIntersectionIndices.length;
     }
     const i0 = lineIntersectionIndices[0];
     const x0 = line.getIntersectionWithLine(this.pts[i0], this.pts[(i0+1)%this.pts.length]);
@@ -486,6 +487,82 @@ UTIL.CH.prototype.splitByLine = function(line, ret) {
     push(pts);
 }
 
+UTIL.GeneralConvexHull = function(scatteredPoints) {
+    // Sort input by x:
+    scatteredPoints.sort((a, b) => a.x === b.x ? a.y-b.y : a.x-b.x);
+    scatteredPoints = scatteredPoints.filter((p, i, a) => i === 0 || !a[i-1].equals(p));
+
+    // Find left and rightmost points:
+    let leftMost = scatteredPoints[0];
+    let rightMost = scatteredPoints[scatteredPoints.length-1];
+
+    //Split points in upper and lower:
+    let upperPoints = [];
+    let lowerPoints = [];
+    for(let i = 1; i < scatteredPoints.length-1; ++i) {
+        let p = scatteredPoints[i];
+        if(UTIL.noTurn(leftMost, rightMost, p))
+            continue;
+        if(UTIL.leftTurn(leftMost, rightMost, p))
+            upperPoints.push(p.clone());
+        else
+            lowerPoints.push(p.flipY());
+    }
+    
+    //Construct upper hull:
+    upperPoints = this.upperHull(leftMost, rightMost, upperPoints);
+    
+    //Construct lower hull:
+    lowerPoints = this.upperHull(leftMost.flipY(), rightMost.flipY(), lowerPoints);
+
+    //Make points of hull:
+    this.points = [];
+    this.points.push(...upperPoints);
+    let i = upperPoints.length;
+
+    this.points[i] = rightMost;
+    i = upperPoints.length + lowerPoints.length;
+
+    lowerPoints.forEach(p => {
+            i--;
+            if(i != this.points.length-1) {
+                this.points[i+1] = p.flipY();
+            }
+        });
+}
+
+UTIL.GeneralConvexHull.prototype.upperHull = function(left, right, between) {
+    let out = [];
+    between.push(right);
+        
+    out.push(left);
+    let lastPeek = right;
+    between.forEach(p => {
+            if(p.x === lastPeek.x) {
+                if(p.y < lastPeek.y) {
+                    return;
+                }
+                else {
+                    lastPeek = out.pop();
+                }
+            }
+            
+            while(out.length !== 0 && !UTIL.rightTurn(out[out.length-1], lastPeek, p)) {
+                lastPeek = out.pop();
+            }
+            out.push(lastPeek);
+            lastPeek = p;
+        });
+
+    // Fix rightmost point as it should be handled differently:
+    out.push(lastPeek);
+    if(out[out.length-1].equals(right)) {
+        out.pop();
+    }
+        
+    return out;
+}
+    
 /*
   Assume a and b are lists of triangles and quads. 
   The result from this function contains all parts of elements of b that do not overlap with any element from a.
